@@ -58,7 +58,7 @@
 :root[data-theme="dark"][data-sky="rain"] { --bg: #0f1a27; }
 :root[data-theme="dark"][data-sky="night"] { --bg: #0c111d; }
 body { transition: background-color .5s; }
-.bic svg { display: block; width: 52px; height: 52px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.bic svg { display: block; width: 64px; height: 64px; overflow: visible; }
 .bic { margin-top: 14px; }
 
 * { box-sizing: border-box; }
@@ -110,11 +110,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
 .hr .tm { font-size: 14px; color: var(--ink2); }
 .hr .tt { font-size: 18px; font-weight: 500; }
 .hr .tt.fr { color: var(--cold); }
-.hr .mm { height: 14px; font-size: 12px; line-height: 14px; color: var(--ink2); }
-.ic svg { display: block; width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.hr .mm { height: 14px; font-size: 12.5px; font-weight: 500; line-height: 14px; color: #3f93f0; }
+.ic svg { display: block; width: 34px; height: 34px; overflow: visible; }
+.pp { display: block; margin-top: 1px; text-align: center; font-size: 12.5px; font-weight: 500; color: #3f93f0; line-height: 14px; font-variant-numeric: tabular-nums; }
+.ic { text-align: center; }
 
 .days { margin-top: 10px; border-top: 1px solid var(--line); }
-.day { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.day { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .day .nm { min-width: 0; }
 .day .nm b { display: block; font-size: 18px; font-weight: 500; }
 .day .nm span { display: block; margin-top: 2px; font-size: 15px; color: var(--ink2); }
@@ -172,7 +174,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   <p class="verdict" id="verdict"></p>
 
   <dl class="signals">
-    <div><dt>Заморозок</dt><dd id="sFrost"></dd></div>
+    <div id="rowFrost"><dt>Заморозок</dt><dd id="sFrost"></dd></div>
     <div><dt>Опади</dt><dd id="sRain"></dd></div>
     <div><dt>Вітер</dt><dd id="sWind"></dd></div>
   </dl>
@@ -380,15 +382,27 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   }
 
   /* ---------- icons and plain-language sky ---------- */
-  var CLOUD = 'M6.5 17.5h10.2a3.8 3.8 0 0 0 .5-7.57 5.3 5.3 0 0 0-10.2 1.3A3.1 3.1 0 0 0 6.5 17.5z';
+  /* Apple-weather-like pictures: warm sun, soft white cloud, blue drops. Gradients live once in a hidden svg. */
+  document.body.insertAdjacentHTML('afterbegin', '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>' +
+    '<linearGradient id="gSun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe066"/><stop offset="1" stop-color="#ffb21e"/></linearGradient>' +
+    '<linearGradient id="gCl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#cbd6e3"/></linearGradient>' +
+    '<linearGradient id="gClD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6ecf3"/><stop offset="1" stop-color="#9fadbf"/></linearGradient>' +
+    '<linearGradient id="gClS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9c4d2"/><stop offset="1" stop-color="#76849a"/></linearGradient>' +
+    '<linearGradient id="gMn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c4"/><stop offset="1" stop-color="#f2cf5f"/></linearGradient>' +
+    '</defs></svg>');
+  var CLOUD = 'M6.4 18.2h10.6a4 4 0 0 0 .55-7.96A5.6 5.6 0 0 0 6.8 11.3 3.5 3.5 0 0 0 6.4 18.2z';
+  var RAYS = '<path stroke="#ffb21e" stroke-width="1.7" stroke-linecap="round" d="M12 2.6v2M12 19.4v2M2.6 12h2M19.4 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/>';
+  function cl(fill, dy, dx) { return '<path fill="url(#' + fill + ')" stroke="rgba(30,50,80,.22)" stroke-width=".6" stroke-linejoin="round" d="' + CLOUD + '" transform="translate(' + (dx || 0) + ' ' + (dy || 0) + ')"/>'; }
+  var MOON = '<path fill="url(#gMn)" d="M19.2 14.8A7.7 7.7 0 1 1 9.2 4.8a6.3 6.3 0 0 0 10 10z"/>';
   var ICO = {
-    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/>',
-    moon: '<path d="M19 14.6A7.6 7.6 0 1 1 9.4 5a6.2 6.2 0 0 0 9.6 9.6z"/>',
-    cloud: '<path d="' + CLOUD + '"/>',
-    partly: '<circle cx="8" cy="8" r="2.8"/><path d="M8 2.6v1.2M2.6 8h1.2M4.2 4.2l.9.9M11.8 4.2l-.9.9"/><path fill="var(--bg)" d="' + CLOUD + '" transform="translate(1.5 1.8)"/>',
-    rain: '<path d="' + CLOUD + '" transform="translate(0 -3)"/><path d="M8.5 17l-1 2.8M12.5 17l-1 2.8M16.5 17l-1 2.8"/>',
-    snow: '<path d="' + CLOUD + '" transform="translate(0 -3)"/><circle cx="8" cy="18.2" r=".9" fill="currentColor"/><circle cx="12" cy="20" r=".9" fill="currentColor"/><circle cx="16" cy="18.2" r=".9" fill="currentColor"/>',
-    storm: '<path d="' + CLOUD + '" transform="translate(0 -3)"/><path d="M12.8 14.6 10.4 18.2h3l-1.4 3.2"/>'
+    sun: '<circle cx="12" cy="12" r="4.6" fill="url(#gSun)"/>' + RAYS,
+    moon: MOON + '<circle cx="19" cy="5.5" r=".8" fill="#fff6c4"/><circle cx="15.5" cy="3.6" r=".55" fill="#fff6c4"/>',
+    cloud: cl('gCl', -1),
+    partly: '<g transform="translate(-3.6 -3.8) scale(.62) translate(7.4 7.4)"><circle cx="12" cy="12" r="4.8" fill="url(#gSun)"/>' + RAYS + '</g>' + cl('gCl', 1.2, 1.2),
+    partlyN: '<g transform="translate(-4.4 -4.6) scale(.62) translate(7.8 7.8)">' + MOON + '</g>' + cl('gCl', 1.2, 1.2),
+    rain: cl('gClD', -3.2) + '<path fill="none" stroke="#4aa8ff" stroke-width="1.8" stroke-linecap="round" d="M8.4 17.6l-1 2.9M12.4 17.6l-1 2.9M16.4 17.6l-1 2.9"/>',
+    snow: cl('gClD', -3.2) + '<g fill="#fff" stroke="#8dbbea" stroke-width=".6"><circle cx="8" cy="18.6" r="1.1"/><circle cx="12" cy="20.4" r="1.1"/><circle cx="16" cy="18.6" r="1.1"/></g>',
+    storm: cl('gClS', -3.2) + '<path fill="#ffd23c" stroke="#e5a100" stroke-width=".5" stroke-linejoin="round" d="M12.9 14.4 9.6 19h3.1l-1.5 3.6 4.4-5.4h-3z"/>'
   };
   function ico(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICO[k] + '</svg>'; }
   function sky(i) {
@@ -396,7 +410,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     if (wc >= 95) return { k: 'storm', w: 'Гроза' };
     if (p >= 0.15) return t <= 0 ? { k: 'snow', w: 'Сніг' } : t <= 1.5 ? { k: 'snow', w: 'Мокрий сніг' } : { k: 'rain', w: 'Дощ' };
     if (c > 75) return { k: 'cloud', w: 'Хмарно' };
-    if (c > 40) return { k: 'partly', w: 'Мінлива хмарність' };
+    if (c > 40) return { k: night ? 'partlyN' : 'partly', w: 'Мінлива хмарність' };
     if (c > 20 && !night) return { k: 'partly', w: 'Невелика хмарність' };
     return night ? { k: 'moon', w: 'Ясно' } : { k: 'sun', w: 'Сонячно' };
   }
@@ -410,16 +424,16 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
         '<span class="tm">' + (i === a ? 'Зараз' : pad(M.hour[i]) + ':00') + '</span>' +
         '<span class="ic" title="' + sk.w + '">' + ico(sk.k) + '</span>' +
         '<span class="tt' + (M.T[i] <= 0 ? ' fr' : '') + '">' + deg(M.T[i]) + '</span>' +
-        '<span class="mm">' + (M.P[i] >= 0.2 ? num(M.P[i], 1) + ' мм' : '') + '</span></div>';
+        '<span class="mm">' + (M.PP[i] >= 20 && M.P[i] >= 0.1 ? Math.round(M.PP[i] / 10) * 10 + '%' : '') + '</span></div>';
     }
     $('hours').innerHTML = s;
   }
 
   /* ---------- days: a picture, a few words, two numbers ---------- */
   function dayInfo(d) {
-    var mn = 99, mxv = -99, mm = 0, wet = 0, tw = 0, cs = 0, cn = 0, ground = false, storm = false, i;
+    var mn = 99, mxv = -99, mm = 0, wet = 0, tw = 0, cs = 0, cn = 0, ground = false, storm = false, pp = 0, i;
     for (i = d.start; i <= d.end; i++) {
-      mn = Math.min(mn, M.T[i]); mxv = Math.max(mxv, M.T[i]); mm += M.P[i];
+      mn = Math.min(mn, M.T[i]); mxv = Math.max(mxv, M.T[i]); mm += M.P[i]; if (M.P[i] >= 0.1) pp = Math.max(pp, M.PP[i]);
       if (M.P[i] >= 0.15) { wet++; tw += M.T[i]; }
       if (M.D[i]) { cs += M.C[i]; cn++; }
       if (M.WC[i] >= 95) storm = true;
@@ -434,13 +448,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     } else if (avgC > 75) { k = 'cloud'; w = 'Хмарно, без опадів'; }
     else if (avgC > 40) { k = 'partly'; w = 'Мінлива хмарність, сухо'; }
     else { k = 'sun'; w = 'Переважно сонячно, сухо'; }
-    return { k: k, w: w, mn: mn, mx: mxv, note: mn <= -0.5 ? 'Вночі мороз' : (mn <= 1 || ground) ? 'Вночі можливий приморозок' : '' };
+    return { k: k, w: w, pp: (k === 'rain' || k === 'snow' || k === 'storm') && pp >= 20 ? Math.round(pp / 10) * 10 : 0, mn: mn, mx: mxv, note: mn <= -0.5 ? 'Вночі мороз' : (mn <= 1 || ground) ? 'Вночі можливий приморозок' : '' };
   }
   function renderDays() {
     $('days').innerHTML = M.days.map(function (d, k) {
       var r = dayInfo(d);
       var nm = k === 0 ? 'Сьогодні' : k === 1 ? 'Завтра' : WDL[d.wd].charAt(0).toUpperCase() + WDL[d.wd].slice(1);
-      return '<div class="day"><span class="ic">' + ico(r.k) + '</span><div class="nm"><b>' + nm + '</b><span>' + r.w + '</span>' + (r.note ? '<em>' + r.note + '</em>' : '') + '</div>' +
+      return '<div class="day"><span class="ic">' + ico(r.k) + (r.pp ? '<span class="pp">' + r.pp + '%</span>' : '') + '</span><div class="nm"><b>' + nm + '</b><span>' + r.w + '</span>' + (r.note ? '<em>' + r.note + '</em>' : '') + '</div>' +
         '<div class="tp"><span>вдень <b>' + deg(r.mx) + '</b></span><span>вночі <b>' + deg(r.mn) + '</b></span></div></div>';
     }).join('');
   }
@@ -530,10 +544,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     var df = M.curA - M.curT;
     $('feels').textContent = Math.abs(df) >= 1.5 ? 'Відчувається як ' + deg(M.curA) : '';
     $('verdict').textContent = cp.verdict;
+    var fr = cp.an.level !== 'none' || (cp.an.nextFrost && cp.an.nextFrost.i - M.nowIdx <= 72) || cp.an.tmin <= 3;
+    $('rowFrost').hidden = !fr;
     $('sFrost').textContent = cp.frost; $('sFrost').className = cp.an.level === 'air' ? 'cold' : '';
     $('sRain').textContent = cp.rain; $('sWind').textContent = cp.wind;
     var sk = sky(M.nowIdx); $('bic').innerHTML = ico(sk.k);
-    document.documentElement.setAttribute('data-sky', sk.k === 'sun' || sk.k === 'partly' ? 'sun' : sk.k === 'moon' ? 'night' : sk.k === 'cloud' ? 'cloud' : 'rain');
+    document.documentElement.setAttribute('data-sky', sk.k === 'sun' || sk.k === 'partly' ? 'sun' : sk.k === 'moon' || sk.k === 'partlyN' ? 'night' : sk.k === 'cloud' ? 'cloud' : 'rain');
     renderHazards(); renderHours(); renderDays(); renderMap();
     var st = M.demo ? 'Демо-дані' : source === 'cache' ? 'Збережено о ' + M.stamp + ', без зв’язку' : 'Оновлено о ' + M.stamp;
     $('status').textContent = st;

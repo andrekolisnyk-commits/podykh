@@ -1,5 +1,5 @@
 /* Подих: оболонка застосунку працює без мережі, прогноз беремо з мережі, а за її відсутності з пам’яті сторінки. */
-var CACHE = 'podykh-v5';
+var CACHE = 'podykh-v6';
 var SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));

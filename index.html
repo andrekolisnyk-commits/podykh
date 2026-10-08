@@ -6,6 +6,9 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#f1f2f0">
 <meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Подих">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -190,6 +193,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     <h2><span id="shTitle">Місце</span><button class="x" id="shClose" aria-label="Закрити">×</button></h2>
     <button class="btn" id="gpsBtn">Використати моє місцезнаходження</button>
     <p class="msg" id="gpsMsg" hidden></p>
+    <h3>Особисте посилання</h3>
+    <div class="row"><input type="text" id="lk" placeholder="Вставте посилання, яке вам надіслали" autocomplete="off" autocapitalize="off" aria-label="Особисте посилання"><button class="btn ghost" id="lkBtn">Готово</button></div>
+    <p class="msg" id="lkMsg" hidden></p>
     <h3>Пошук за назвою</h3>
     <div class="row"><input type="text" id="q" placeholder="Село, місто, район" autocomplete="off" aria-label="Пошук місця"></div>
     <ul class="list" id="results"></ul>
@@ -222,13 +228,27 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 
   /* The home place is never stored in this file: it arrives through a private link (#p=lat,lon,name) and is kept on the phone. The hash stays in the address bar on purpose, so a home-screen icon made from that page opens with the place already set. */
-  (function () {
-    var m = /^#p=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?),(.{1,200})$/.exec(location.hash);
-    if (!m) return;
+  function parseLink(str) {
+    var m = /#p=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?),([^\s#]{1,200})/.exec(str || '');
+    if (!m) return null;
     var la = +m[1], lo = +m[2], nm = '';
     try { nm = decodeURIComponent(m[3]); } catch (e) { nm = m[3]; }
-    if (la >= -90 && la <= 90 && lo >= -180 && lo <= 180) lsSet('podykh-active', { name: nm, lat: la, lon: lo });
-  })();
+    return la >= -90 && la <= 90 && lo >= -180 && lo <= 180 ? { name: nm, lat: la, lon: lo } : null;
+  }
+  (function () { var p = parseLink(location.hash); if (p) lsSet('podykh-active', p); })();
+  /* iPhone: a home-screen icon is a separate app with its own storage, and it opens the manifest's start_url, not the page you were on.
+     So on iOS the manifest is rebuilt on the fly with the place inside start_url; the icon then carries the place with it. */
+  function iosManifest() {
+    if (!/iPhone|iPad|iPod/.test(navigator.userAgent)) return;
+    var p = lsGet('podykh-active', null); if (!p) return;
+    var base = location.origin + location.pathname.replace(/[^\/]*$/, '');
+    var start = base + '#p=' + p.lat + ',' + p.lon + ',' + encodeURIComponent(p.name);
+    var mf = { name: 'Подих', short_name: 'Подих', lang: 'uk', id: base, start_url: start, scope: base, display: 'standalone', background_color: '#dce9f7', theme_color: '#dce9f7',
+      icons: [{ src: base + 'icons/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: base + 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }] };
+    var l = document.querySelector('link[rel="manifest"]'); if (!l) return;
+    l.setAttribute('href', 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(mf)));
+  }
+  iosManifest();
   window.addEventListener('hashchange', function () { if (/^#p=/.test(location.hash)) location.reload(); });
   var places = lsGet('podykh-places', []);
   var place = lsGet('podykh-active', null);
@@ -593,6 +613,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     }).catch(function () { m.hidden = false; m.textContent = 'Пошук доступний у встановленій апці з мережею.'; });
   }
   $('q').addEventListener('input', function (e) { clearTimeout(qt); var v = e.target.value.trim(); qt = setTimeout(function () { search(v); }, 350); });
+  $('lkBtn').addEventListener('click', function () {
+    var p = parseLink($('lk').value), m = $('lkMsg');
+    if (!p) { m.hidden = false; m.textContent = 'У цьому тексті немає особистого посилання.'; return; }
+    m.hidden = true; $('lk').value = ''; setPlace(p); iosManifest();
+  });
   $('gpsBtn').addEventListener('click', function () { gps(false); });
   $('saveBtn').addEventListener('click', function () {
     var nm = $('saveName').value.trim(); if (!nm || !place) return;

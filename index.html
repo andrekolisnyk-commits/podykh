@@ -230,6 +230,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     if (la >= -90 && la <= 90 && lo >= -180 && lo <= 180) lsSet('podykh-active', { name: nm, lat: la, lon: lo });
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
   })();
+  window.addEventListener('hashchange', function () { if (/^#p=/.test(location.hash)) location.reload(); });
   var places = lsGet('podykh-places', []);
   var place = lsGet('podykh-active', null);
   var M = null;

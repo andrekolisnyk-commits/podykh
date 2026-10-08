@@ -93,11 +93,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
 
 .sec { margin: 34px 0 0; font-size: 12px; font-weight: 500; letter-spacing: .09em; text-transform: uppercase; color: var(--ink3); }
 
-.signals { margin: 22px 0 0; padding: 0; border-top: 1px solid var(--line); }
-.signals div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
-.signals dt { margin: 0; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--ink3); padding-top: 4px; }
-.signals dd { margin: 0; font-size: 17px; line-height: 1.42; }
-.signals .cold { color: var(--cold); }
+.lines { margin: 22px 0 0; border-top: 1px solid var(--line); }
+.lines p { margin: 0; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 18px; line-height: 1.4; }
 
 .note { margin: 26px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink3); }
 .note b { font-weight: 500; color: var(--ink2); }
@@ -146,7 +143,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
 .msg { margin: 8px 0 0; font-size: 14px; color: var(--ink2); }
 
 @media (min-width: 720px) { .wrap { padding-block: 32px 60px; } }
-@media (max-width: 380px) { .signals div { grid-template-columns: 84px minmax(0, 1fr); gap: 10px; } .day { gap: 10px; } }
+@media (max-width: 380px) { .day { gap: 10px; } }
 </style>
 <style>html{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
 
@@ -173,11 +170,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
 
   <p class="verdict" id="verdict"></p>
 
-  <dl class="signals">
-    <div id="rowFrost"><dt>Вночі</dt><dd id="sFrost"></dd></div>
-    <div><dt>Опади</dt><dd id="sRain"></dd></div>
-    <div><dt>Вітер</dt><dd id="sWind"></dd></div>
-  </dl>
+  <div class="lines" id="lines"></div>
 
   <h2 class="sec">Найближчі години</h2>
   <section class="hours" id="hours" aria-label="Погода по годинах"></section>
@@ -346,39 +339,54 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     return c > 80 ? 'Хмарно' : c > 50 ? 'Мінлива хмарність' : c > 25 ? 'Невелика хмарність' : 'Ясно';
   }
   function force(w) { return w < 4 ? 'Слабкий' : w < 8 ? 'Помірний' : w < 14 ? 'Сильний' : w < 20 ? 'Дуже сильний' : 'Штормовий'; }
+  function partOf(i) { var h = M.hour[i]; return h < 6 ? 'вночі' : h < 12 ? 'зранку' : h < 18 ? 'вдень' : 'ввечері'; }
+  function whenPart(i) {
+    var a = M.nowIdx, diff = M.dayOf[i] - M.dayOf[a], h = M.hour[i], nh = M.hour[a];
+    if (i === a) return 'зараз';
+    if (diff === 1 && h < 6) return 'цієї ночі';
+    if (diff === 0 && h < 6) return 'до ранку';
+    return (diff === 0 ? 'сьогодні' : diff === 1 ? 'завтра' : WDA[M.days[M.dayOf[i]].wd]) + ' ' + partOf(i);
+  }
+  function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+  function amount(mm) { return mm < 1.5 ? 'слабкий' : mm < 6 ? 'помірний' : 'сильний'; }
   function copy() {
-    var an = analyse(), a = M.nowIdx, night = !M.D[an.ti];
-    var frost, verdict = [];
-    if (an.level === 'air') {
-      frost = 'Мінімум ' + deg1(an.tmin) + ' ' + dd(an.ti) + 'о ' + hh(an.ti) + ', це мороз. Ґрунт до ' + deg1(an.smin) + '.';
-      verdict.push((night ? 'Вночі мороз' : 'Мороз') + ' до ' + deg(an.tmin) + '.');
-    } else if (an.level === 'ground') {
-      if (an.smin <= 0) frost = 'Мінімум ' + deg1(an.tmin) + ', але на ґрунті приморозок до ' + deg1(an.smin) + ' ' + dd(an.si) + 'о ' + hh(an.si) + '.';
-      else frost = 'Мінімум ' + deg1(an.tmin) + ', але ясно й тихо: на ґрунті можливий приморозок ' + dd(an.gi) + 'близько ' + hh(an.gi) + '.';
-      verdict.push('Можливий приморозок на ґрунті.');
-    } else {
-      frost = 'Мінімум ' + deg1(an.tmin) + ' ' + dd(an.ti) + 'о ' + hh(an.ti) + '.';
-      if (an.nextFrost) { var nf = an.nextFrost; frost += ' Наступний ' + nf.kind + ' ' + dayPhrase(nf.i) + '.'; }
-      if (an.tmin <= 6) verdict.push('Заморозку не буде.');
+    var an = analyse(), a = M.nowIdx, b = Math.min(M.n, a + 24), i, lines = [];
+    var tmax = -99, wet12 = false;
+    for (i = a; i < b; i++) { if (M.T[i] > tmax) tmax = M.T[i]; if (i < a + 12 && M.P[i] >= 0.15) wet12 = true; }
+    function feel(t) { return t >= 28 ? 'спекотно' : t >= 20 ? 'тепло' : t >= 12 ? 'прохолодно' : t >= -0.5 ? 'холодно' : 'морозно'; }
+    /* one main sentence */
+    var verdict;
+    if (M.P[a] >= 0.15) verdict = 'Зараз ' + phase(M.T[a]).toLowerCase() + ', ' + deg(M.curT) + '.';
+    else if (M.D[a]) verdict = 'Сьогодні ' + feel(tmax) + (wet12 ? '' : ' й сухо') + ', до ' + deg(tmax) + '.';
+    else verdict = 'Зараз ' + feel(M.curT) + (wet12 ? '' : ' й сухо') + ', ' + deg(M.curT) + '.';
+    if (!an.seg) {
+      if (an.next >= 0) verdict += ' Наступний ' + phase(M.T[an.next]).toLowerCase() + ' ' + whenPart(an.next) + '.';
+      else verdict += ' Опадів цього тижня не буде.';
     }
-    var rain;
+    /* rain, only when it is coming within a day */
     if (an.seg) {
-      var sg = an.seg, ongoing = sg.s === a;
-      rain = sg.ph + (ongoing ? ' іде зараз' : ' ' + dd(sg.s) + 'з ' + hh(sg.s)) + ' до ' + pad((M.hour[sg.e] + 1) % 24) + ':00, ' + mmText(sg.mm) + '.';
-      verdict.push(ongoing ? sg.ph + ' іде зараз, ще ' + mmText(sg.mm) + '.' : sg.ph + ' почнеться ' + dd(sg.s) + 'близько ' + hh(sg.s) + '.');
-    } else if (an.next >= 0) {
-      rain = 'Сухо наступні 24 години. Далі ' + phase(M.T[an.next]).toLowerCase() + ' ' + dayPhrase(an.next) + ' близько ' + hh(an.next) + '.';
-      verdict.push('Сухо, найближчі опади ' + dayPhrase(an.next) + '.');
-    } else {
-      rain = 'Сухо весь прогнозований тиждень.';
-      verdict.push('Сухо.');
+      var sg = an.seg, ph = sg.ph.toLowerCase(), am = amount(sg.mm);
+      if (sg.s === a) lines.push('Зараз ' + am + ' ' + ph + ', закінчиться ' + whenPart(Math.min(M.n - 1, sg.e + 1)) + '.');
+      else lines.push(cap(whenPart(sg.s)) + ' ' + am + ' ' + ph + '.');
     }
-    var wind, wn = M.W[a], dn = FROM[Math.round(M.DIR[a] / 45) % 8];
-    if (wn < 1) wind = 'Штиль.'; else wind = force(wn) + ' вітер ' + dn + ', ' + num(wn, 0) + ' м/с.';
-    if (an.wmax >= Math.max(wn + 2.5, 3) && an.wi !== a) wind += ' Найсильніший ' + dd(an.wi) + 'о ' + hh(an.wi) + ': ' + num(an.wmax, 0) + ' м/с' + (an.gmax >= an.wmax + 3 ? ', пориви до ' + num(an.gmax, 0) + ' м/с' : '') + '.';
-    else if (M.G[a] >= wn + 4) wind += ' Пориви до ' + num(M.G[a], 0) + ' м/с.';
-    if (an.gmax >= 12) verdict.push('Пориви вітру до ' + num(an.gmax, 0) + ' м/с.');
-    return { an: an, frost: frost, rain: rain, wind: wind, verdict: verdict.slice(0, 2).join(' ') };
+    /* cold, only when it matters */
+    var tip = ' Накрийте, що не любить холоду.';
+    if (an.level === 'air' && an.tmin > -0.5) lines.push(cap(whenPart(an.ti)) + ' близько нуля, можливий приморозок.' + tip);
+    else if (an.level === 'air') lines.push(cap(whenPart(an.ti)) + ' мороз, до ' + deg(an.tmin) + '.' + (an.tmin > -4 ? tip : ''));
+    else if (an.level === 'ground') {
+      if (an.smin <= 0) lines.push(cap(whenPart(an.si)) + ' на землі приморозок, до ' + deg(an.smin) + '.' + tip);
+      else lines.push(cap(whenPart(an.gi)) + ' на землі можливий приморозок.' + tip);
+    } else if (an.nextFrost && an.nextFrost.i - a <= 72) lines.push('Найближчий ' + an.nextFrost.kind + ' ' + whenPart(an.nextFrost.i) + '.');
+    /* wind, when it is noticeable */
+    var wn = M.W[a], dn = FROM[Math.round(M.DIR[a] / 45) % 8];
+    if (wn >= 4) {
+      var w = force(wn) + ' вітер ' + dn + ', ' + num(wn, 0) + ' м/с.';
+      if (an.wmax >= wn + 2.5 && an.wi !== a) w += ' Найсильніший ' + whenPart(an.wi) + ': ' + num(an.wmax, 0) + ' м/с' + (an.gmax >= an.wmax + 3 ? ', пориви до ' + num(an.gmax, 0) + ' м/с' : '') + '.';
+      lines.push(w);
+    } else if (an.wmax >= 5) {
+      lines.push('Вітер посилиться ' + whenPart(an.wi) + ' до ' + num(an.wmax, 0) + ' м/с' + (an.gmax >= an.wmax + 3 ? ', пориви до ' + num(an.gmax, 0) + ' м/с' : '') + '.');
+    }
+    return { an: an, verdict: verdict, lines: lines };
   }
 
   /* ---------- icons and plain-language sky ---------- */
@@ -544,8 +552,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     var df = M.curA - M.curT;
     $('feels').textContent = Math.abs(df) >= 1.5 ? 'Відчувається як ' + deg(M.curA) : '';
     $('verdict').textContent = cp.verdict;
-    $('sFrost').textContent = cp.frost; $('sFrost').className = cp.an.level === 'air' ? 'cold' : '';
-    $('sRain').textContent = cp.rain; $('sWind').textContent = cp.wind;
+    $('lines').hidden = !cp.lines.length;
+    $('lines').innerHTML = cp.lines.map(function (t) { return '<p>' + t + '</p>'; }).join('');
     var sk = sky(M.nowIdx); $('bic').innerHTML = ico(sk.k);
     document.documentElement.setAttribute('data-sky', sk.k === 'sun' || sk.k === 'partly' ? 'sun' : sk.k === 'moon' || sk.k === 'partlyN' ? 'night' : sk.k === 'cloud' ? 'cloud' : 'rain');
     renderHazards(); renderHours(); renderDays(); renderMap();

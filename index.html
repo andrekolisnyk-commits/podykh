@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#f1f2f0">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Подих</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@200;300;400;500;600&family=Spectral:wght@300;400&display=swap">
+<style>
+:root {
+  --bg: #f1f2f0;
+  --ink: #17202a;
+  --ink2: rgba(23, 32, 42, .70);
+  --ink3: rgba(23, 32, 42, .48);
+  --line: rgba(23, 32, 42, .13);
+  --cold: #2f6fc4;
+  --warm: #b4531f;
+  --panel: #f8f9f7;
+  --scrim: rgba(15, 25, 38, .38);
+  --serif: 'Spectral', 'Georgia', 'Times New Roman', serif;
+  --sans: 'Onest', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1419; --ink: #eef1f3; --ink2: rgba(238, 241, 243, .72); --ink3: rgba(238, 241, 243, .48);
+    --line: rgba(238, 241, 243, .14); --cold: #6aa8f0; --warm: #e8935a; --panel: #172029; --scrim: rgba(0, 0, 0, .55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1419; --ink: #eef1f3; --ink2: rgba(238, 241, 243, .72); --ink3: rgba(238, 241, 243, .48);
+  --line: rgba(238, 241, 243, .14); --cold: #6aa8f0; --warm: #e8935a; --panel: #172029; --scrim: rgba(0, 0, 0, .55);
+  color-scheme: dark;
+}
+
+:root[data-sky="sun"] { --bg: #f8efd9; }
+:root[data-sky="cloud"] { --bg: #e5e8ea; }
+:root[data-sky="rain"] { --bg: #d3dce6; }
+:root[data-sky="night"] { --bg: #dde1ea; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])[data-sky="sun"] { --bg: #1d1a12; }
+  :root:not([data-theme="light"])[data-sky="cloud"] { --bg: #181c21; }
+  :root:not([data-theme="light"])[data-sky="rain"] { --bg: #121b26; }
+  :root:not([data-theme="light"])[data-sky="night"] { --bg: #0c111d; }
+}
+:root[data-theme="dark"][data-sky="sun"] { --bg: #1d1a12; }
+:root[data-theme="dark"][data-sky="cloud"] { --bg: #181c21; }
+:root[data-theme="dark"][data-sky="rain"] { --bg: #121b26; }
+:root[data-theme="dark"][data-sky="night"] { --bg: #0c111d; }
+body { transition: background-color .5s; }
+.bic svg { display: block; width: 52px; height: 52px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.bic { margin-top: 14px; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; min-height: 100%; }
+.wrap { max-width: 640px; margin: 0 auto; padding-inline: 20px; padding-block: 18px 44px; }
+button { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.place { display: inline-flex; align-items: center; gap: 7px; background: none; border: 0; padding: 6px 0; font-size: 16px; font-weight: 500; cursor: pointer; min-width: 0; }
+.place svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.place span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status { font-size: 12.5px; color: var(--ink3); text-align: right; }
+
+.hero { margin-top: 18px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.hl { min-width: 0; }
+.temp { position: relative; width: max-content; font-size: clamp(88px, 25vw, 124px); font-weight: 200; line-height: .92; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.temp sup { position: absolute; left: 100%; top: .05em; margin-left: 2px; font-size: .4em; font-weight: 300; letter-spacing: 0; }
+.cond { margin: 8px 0 0; font-size: 19px; }
+.feels { margin: 3px 0 0; font-size: 15px; color: var(--ink2); }
+.map { flex: 0 1 44%; max-width: 250px; min-width: 120px; margin-top: 4px; }
+.map svg { display: block; width: 100%; height: auto; overflow: visible; }
+.map svg text { font-family: var(--sans); pointer-events: none; }
+.mo { fill: var(--ink); stroke: var(--ink); stroke-linejoin: round; }
+.mi { fill: var(--bg); stroke: var(--bg); stroke-linejoin: round; }
+.pin { fill: var(--ink); }
+.ring { fill: none; stroke: var(--ink); transform-box: fill-box; transform-origin: center; animation: pulse 2.6s ease-out infinite; }
+@keyframes pulse { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(3.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ring { animation: none; opacity: .35; } }
+
+.verdict { margin: 26px 0 0; max-width: 24em; font-family: var(--serif); font-weight: 300; font-size: clamp(27px, 7vw, 34px); line-height: 1.22; letter-spacing: -.01em; text-wrap: balance; }
+
+.sec { margin: 34px 0 0; font-size: 12px; font-weight: 500; letter-spacing: .09em; text-transform: uppercase; color: var(--ink3); }
+
+.signals { margin: 22px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.signals div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.signals dt { margin: 0; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--ink3); padding-top: 4px; }
+.signals dd { margin: 0; font-size: 17px; line-height: 1.42; }
+.signals .cold { color: var(--cold); }
+
+.note { margin: 26px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink3); }
+.note b { font-weight: 500; color: var(--ink2); }
+
+.hours { display: flex; gap: 0; overflow-x: auto; margin: 10px -20px 0; padding-inline: 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.hours::-webkit-scrollbar { display: none; }
+.hr { flex: none; width: 62px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0 4px; font-variant-numeric: tabular-nums; }
+.hr.nd { border-left: 1px solid var(--line); }
+.hr .dv { height: 14px; font-size: 11.5px; line-height: 14px; color: var(--ink3); font-weight: 500; }
+.hr .tm { font-size: 14px; color: var(--ink2); }
+.hr .tt { font-size: 18px; font-weight: 500; }
+.hr .tt.fr { color: var(--cold); }
+.hr .mm { height: 14px; font-size: 12px; line-height: 14px; color: var(--ink2); }
+.ic svg { display: block; width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+.days { margin-top: 10px; border-top: 1px solid var(--line); }
+.day { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.day .nm { min-width: 0; }
+.day .nm b { display: block; font-size: 18px; font-weight: 500; }
+.day .nm span { display: block; margin-top: 2px; font-size: 15px; color: var(--ink2); }
+.day .nm em { display: block; margin-top: 2px; font-size: 14.5px; font-style: normal; color: var(--cold); }
+.day .tp { text-align: right; font-variant-numeric: tabular-nums; line-height: 1.35; }
+.day .tp span { display: block; font-size: 14px; color: var(--ink2); }
+.day .tp b { font-size: 19px; font-weight: 500; color: var(--ink); }
+.day .tp span + span b { font-weight: 400; color: var(--ink2); font-size: 17px; }
+
+.src { margin: 30px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--ink3); }
+
+.scrim { position: fixed; inset: 0; z-index: 10; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
+.scrim[hidden] { display: none; }
+.sheet { width: min(560px, 100%); max-height: 86%; overflow: auto; background: var(--panel); border-radius: 22px 22px 0 0; padding: 18px 20px calc(env(safe-area-inset-bottom, 0px) + 22px); }
+.sheet h2 { margin: 0 0 14px; font-size: 17px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+.sheet h3 { margin: 22px 0 8px; font-size: 12px; font-weight: 500; letter-spacing: .09em; text-transform: uppercase; color: var(--ink3); }
+.sheet .x { background: none; border: 0; font-size: 22px; line-height: 1; cursor: pointer; color: var(--ink2); padding: 4px 8px; }
+.row { display: flex; gap: 8px; }
+.btn { background: var(--ink); color: var(--bg); border: 0; border-radius: 12px; padding: 12px 16px; font-size: 16px; font-weight: 500; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.sheet input[type=text] { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.list { margin: 6px 0 0; padding: 0; list-style: none; }
+.list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); }
+.list li button.pick { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 12px 0; font-size: 16px; cursor: pointer; }
+.list li small { display: block; color: var(--ink3); font-size: 12.5px; }
+.list li button.del { background: none; border: 0; color: var(--ink3); cursor: pointer; font-size: 18px; padding: 6px 8px; }
+.msg { margin: 8px 0 0; font-size: 14px; color: var(--ink2); }
+
+@media (min-width: 720px) { .wrap { padding-block: 32px 60px; } }
+@media (max-width: 380px) { .signals div { grid-template-columns: 84px minmax(0, 1fr); gap: 10px; } .day { gap: 10px; } }
+</style>
+<style>html{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <button class="place" id="placeBtn" aria-haspopup="dialog">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14.5s4.5-4.2 4.5-7.8A4.5 4.5 0 0 0 3.5 6.7C3.5 10.3 8 14.5 8 14.5z"/><circle cx="8" cy="6.7" r="1.6"/></svg>
+      <span id="placeName">Завантажую</span>
+    </button>
+    <span class="status" id="status"></span>
+  </header>
+
+  <section class="hero" aria-live="polite">
+    <div class="hl">
+      <div class="temp"><span id="t">0</span><sup>°</sup></div>
+      <div class="bic" id="bic"></div>
+      <p class="cond" id="cond"></p>
+      <p class="feels" id="feels"></p>
+    </div>
+    <div class="map" id="mapSec"><svg id="map" role="img" aria-label="Контур Поділля"></svg></div>
+  </section>
+
+  <p class="verdict" id="verdict"></p>
+
+  <dl class="signals">
+    <div><dt>Заморозок</dt><dd id="sFrost"></dd></div>
+    <div><dt>Опади</dt><dd id="sRain"></dd></div>
+    <div><dt>Вітер</dt><dd id="sWind"></dd></div>
+  </dl>
+
+  <h2 class="sec">Найближчі години</h2>
+  <section class="hours" id="hours" aria-label="Погода по годинах"></section>
+
+  <h2 class="sec">Наступні дні</h2>
+  <section class="days" id="days" aria-label="Прогноз по днях"></section>
+
+  <p class="note" id="hz"></p>
+
+  <p class="src" id="src"></p>
+</main>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle">
+    <h2><span id="shTitle">Місце</span><button class="x" id="shClose" aria-label="Закрити">×</button></h2>
+    <button class="btn" id="gpsBtn">Використати моє місцезнаходження</button>
+    <p class="msg" id="gpsMsg" hidden></p>
+    <h3>Пошук за назвою</h3>
+    <div class="row"><input type="text" id="q" placeholder="Село, місто, район" autocomplete="off" aria-label="Пошук місця"></div>
+    <ul class="list" id="results"></ul>
+    <p class="msg" id="qMsg" hidden></p>
+    <h3>Збережені місця</h3>
+    <ul class="list" id="saved"></ul>
+    <h3>Зберегти поточне місце</h3>
+    <div class="row"><input type="text" id="saveName" placeholder="Назва, наприклад Хата" autocomplete="off" aria-label="Назва місця"><button class="btn ghost" id="saveBtn">Зберегти</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var MINUS = '−';
+  var WDS = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  var WDL = ['неділя', 'понеділок', 'вівторок', 'середа', 'четвер', 'п’ятниця', 'субота'];
+  var WDA = ['у неділю', 'у понеділок', 'у вівторок', 'у середу', 'у четвер', 'у п’ятницю', 'у суботу'];
+  var FROM = ['з півночі', 'з північного сходу', 'зі сходу', 'з південного сходу', 'з півдня', 'з південного заходу', 'із заходу', 'з північного заходу'];
+
+  function num(n, d) { var r = +n.toFixed(d); return (r < 0 ? MINUS : '') + Math.abs(r).toFixed(d).replace('.', ','); }
+  function deg(n) { return num(n, 0) + '°'; }
+  function deg1(n) { return num(n, 1) + '°'; }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }
+
+  /* ---------- storage (light, per viewer) ---------- */
+  function lsGet(k, def) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  /* The home place is never stored in this file: it arrives once through a private link (#p=lat,lon,name), is kept on the phone only, and the link is stripped from the address bar. */
+  (function () {
+    var m = /^#p=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?),(.{1,200})$/.exec(location.hash);
+    if (!m) return;
+    var la = +m[1], lo = +m[2], nm = '';
+    try { nm = decodeURIComponent(m[3]); } catch (e) { nm = m[3]; }
+    if (la >= -90 && la <= 90 && lo >= -180 && lo <= 180) lsSet('podykh-active', { name: nm, lat: la, lon: lo });
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  })();
+  var places = lsGet('podykh-places', []);
+  var place = lsGet('podykh-active', null);
+  var M = null;
+
+  /* ---------- data model ---------- */
+  function build(o) {
+    var n = o.time.length, dayOf = [], hour = [], dates = [], di = -1, last = '';
+    for (var i = 0; i < n; i++) {
+      var ds = o.time[i].slice(0, 10);
+      if (ds !== last) { di++; last = ds; dates.push(ds); }
+      dayOf.push(di); hour.push(parseInt(o.time[i].slice(11, 13), 10));
+    }
+    var days = dates.map(function (ds, k) {
+      var p = ds.split('-');
+      return { date: ds, wd: new Date(+p[0], +p[1] - 1, +p[2]).getDay(), start: dayOf.indexOf(k), end: dayOf.lastIndexOf(k) };
+    });
+    return Object.assign({ n: n, dayOf: dayOf, hour: hour, days: days }, o);
+  }
+  function fromApi(j) {
+    var h = j.hourly, n = h.time.length;
+    function arr(a, fb) { if (!a) return new Array(n).fill(0); return a.map(function (v, i) { return v == null ? (fb ? fb[i] : 0) : v; }); }
+    var T = arr(h.temperature_2m), cur = j.current || {};
+    var nowIdx = 0;
+    if (cur.time) { var key = cur.time.slice(0, 13); for (var i = 0; i < n; i++) { if (h.time[i].slice(0, 13) === key) { nowIdx = i; break; } } }
+    return build({
+      time: h.time, T: T, A: arr(h.apparent_temperature, T), P: arr(h.precipitation), PP: arr(h.precipitation_probability),
+      C: arr(h.cloud_cover), W: arr(h.wind_speed_10m), G: arr(h.wind_gusts_10m, h.wind_speed_10m), DIR: arr(h.wind_direction_10m),
+      S: arr(h.soil_temperature_0cm, T), D: arr(h.is_day), WC: arr(h.weather_code), nowIdx: nowIdx,
+      curT: cur.temperature_2m != null ? cur.temperature_2m : T[nowIdx], curA: cur.apparent_temperature != null ? cur.apparent_temperature : h.apparent_temperature[nowIdx],
+      stamp: cur.time ? cur.time.slice(11, 16) : ''
+    });
+  }
+  function demo() {
+    var now = new Date(), time = [], T = [], A = [], P = [], PP = [], C = [], W = [], G = [], DIR = [], S = [], D = [];
+    var mean = [5, 3.8, 7, 8.5, 6, 4.5, 7], amp = [5.5, 5, 3.5, 4.5, 6, 5.5, 4], cl = [0.2, 0.1, 0.95, 0.5, 0.55, 0.2, 0.6];
+    var rain1 = { 14: 0.2, 15: 0.8, 16: 1.3, 17: 1.1, 18: 0.5, 19: 0.2 }, rain4 = { 18: 0.2, 19: 0.4, 20: 0.2 };
+    for (var i = 0; i < 168; i++) {
+      var d = Math.floor(i / 24), hd = i % 24, dt = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d, hd);
+      time.push(dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate()) + 'T' + pad(hd) + ':00');
+      var t = mean[d] + amp[d] * Math.cos((hd - 16.5) / 24 * 2 * Math.PI) + 0.3 * Math.sin(i * 1.7);
+      var c = clamp(cl[d] + 0.12 * Math.sin(i * 0.5) + (d === 0 && hd > 14 ? 0.15 : 0), 0, 1);
+      var p = (d === 2 && rain1[hd]) || (d === 4 && rain4[hd]) || 0;
+      var day = hd >= 7 && hd < 18;
+      var w = (d === 5 && hd > 10 && hd < 19 ? 10.5 + 1.5 * Math.sin(i / 2) : d === 2 ? 6 + 2 * Math.sin(i / 3) : 2.2 + (hd > 9 && hd < 19 ? 2 : 0) + 0.6 * Math.sin(i));
+      T.push(t); C.push(c * 100); P.push(p); PP.push(p > 0 ? Math.min(95, 55 + p * 30) : (d === 2 ? 30 : 5));
+      W.push(w); G.push(w * 1.6 + 1); DIR.push(250 + 25 * Math.sin(i / 9)); D.push(day ? 1 : 0);
+      S.push(t + (day ? 1.5 : (c < 0.35 ? -1.4 : -0.2))); A.push(t - 0.4 * w);
+    }
+    var nowIdx = now.getHours();
+    return build({ time: time, T: T, A: A, P: P, PP: PP, C: C, W: W, G: G, DIR: DIR, S: S, D: D, WC: T.map(function () { return 0; }), nowIdx: nowIdx,
+      curT: T[nowIdx], curA: A[nowIdx], stamp: pad(now.getHours()) + ':' + pad(now.getMinutes()), demo: true });
+  }
+
+  /* ---------- analysis and plain-language copy ---------- */
+  function hh(i) { return pad(M.hour[i]) + ':00'; }
+  function dayPhrase(i) {
+    var diff = M.dayOf[i] - M.dayOf[M.nowIdx];
+    return diff === 0 ? 'сьогодні' : diff === 1 ? 'завтра' : WDA[M.days[M.dayOf[i]].wd];
+  }
+  function dd(i) { var diff = M.dayOf[i] - M.dayOf[M.nowIdx]; return diff <= 0 ? '' : diff === 1 ? 'завтра ' : WDA[M.days[M.dayOf[i]].wd] + ' '; }
+  function phase(t) { return t <= 1 ? 'Сніг' : t <= 2 ? 'Мокрий сніг' : 'Дощ'; }
+  function analyse() {
+    var a = M.nowIdx, b = Math.min(M.n, a + 24), i;
+    var r = { tmin: 99, ti: a, smin: 99, si: a, wmax: 0, wi: a, gmax: 0, ground: false, gi: -1, level: 'none', seg: null, mm: 0, next: -1, nextFrost: null };
+    for (i = a; i < b; i++) {
+      if (M.T[i] < r.tmin) { r.tmin = M.T[i]; r.ti = i; }
+      if (M.S[i] < r.smin) { r.smin = M.S[i]; r.si = i; }
+      if (M.W[i] > r.wmax) { r.wmax = M.W[i]; r.wi = i; }
+      if (M.G[i] > r.gmax) r.gmax = M.G[i];
+      if (!M.D[i] && M.T[i] <= 2.5 && M.C[i] < 35 && M.W[i] < 3) { r.ground = true; if (r.gi < 0 || M.T[i] < M.T[r.gi]) r.gi = i; }
+      r.mm += M.P[i];
+    }
+    r.level = r.tmin <= 0 ? 'air' : (r.smin <= 0 || r.ground) ? 'ground' : 'none';
+    var s = -1, e = -1;
+    for (i = a; i < b; i++) { if (M.P[i] >= 0.1) { if (s < 0) s = i; e = i; } else if (s >= 0) break; }
+    if (s >= 0) {
+      var mm = 0; for (i = s; i <= e; i++) mm += M.P[i];
+      r.seg = { s: s, e: e, mm: mm, ph: phase(M.T[Math.floor((s + e) / 2)]) };
+    }
+    for (i = b; i < M.n; i++) { if (M.P[i] >= 0.2) { r.next = i; break; } }
+    for (i = b; i < M.n; i++) {
+      if (M.T[i] <= 0) { r.nextFrost = { i: i, kind: 'мороз' }; break; }
+      if (M.S[i] <= 0 && !r.nextFrost) r.nextFrost = { i: i, kind: 'приморозок' };
+    }
+    return r;
+  }
+  function mmText(x) { return x < 0.5 ? 'менше міліметра' : 'близько ' + num(x, x < 10 ? 1 : 0) + ' мм'; }
+  function condText() {
+    var a = M.nowIdx;
+    if (M.P[a] >= 0.15) return phase(M.T[a]);
+    var c = M.C[a];
+    return c > 80 ? 'Хмарно' : c > 50 ? 'Мінлива хмарність' : c > 25 ? 'Невелика хмарність' : 'Ясно';
+  }
+  function force(w) { return w < 4 ? 'Слабкий' : w < 8 ? 'Помірний' : w < 14 ? 'Сильний' : w < 20 ? 'Дуже сильний' : 'Штормовий'; }
+  function copy() {
+    var an = analyse(), a = M.nowIdx, night = !M.D[an.ti];
+    var frost, verdict = [];
+    if (an.level === 'air') {
+      frost = 'Мінімум ' + deg1(an.tmin) + ' ' + dd(an.ti) + 'о ' + hh(an.ti) + ', ґрунт до ' + deg1(an.smin) + '.';
+      verdict.push((night ? 'Вночі мороз' : 'Мороз') + ' до ' + deg(an.tmin) + '.');
+    } else if (an.level === 'ground') {
+      if (an.smin <= 0) frost = 'Повітря не нижче ' + deg1(an.tmin) + ', але ґрунт до ' + deg1(an.smin) + ' ' + dd(an.si) + 'о ' + hh(an.si) + '.';
+      else frost = 'Повітря ' + deg1(an.tmin) + ', але ясно й тихо, на ґрунті можливий приморозок ' + dd(an.gi) + 'близько ' + hh(an.gi) + '.';
+      verdict.push('Можливий приморозок на ґрунті.');
+    } else {
+      frost = 'Без заморозку, мінімум ' + deg1(an.tmin) + ' ' + dd(an.ti) + 'о ' + hh(an.ti) + '.';
+      if (an.nextFrost) { var nf = an.nextFrost; frost += ' Наступний ' + nf.kind + ' ' + dayPhrase(nf.i) + '.'; }
+      if (an.tmin <= 6) verdict.push('Заморозку не буде.');
+    }
+    var rain;
+    if (an.seg) {
+      var sg = an.seg, ongoing = sg.s === a;
+      rain = sg.ph + (ongoing ? ' іде зараз' : ' ' + dd(sg.s) + 'з ' + hh(sg.s)) + ' до ' + pad((M.hour[sg.e] + 1) % 24) + ':00, ' + mmText(sg.mm) + '.';
+      verdict.push(ongoing ? sg.ph + ' іде зараз, ще ' + mmText(sg.mm) + '.' : sg.ph + ' почнеться ' + dd(sg.s) + 'близько ' + hh(sg.s) + '.');
+    } else if (an.next >= 0) {
+      rain = 'Сухо наступні 24 години. Далі ' + phase(M.T[an.next]).toLowerCase() + ' ' + dayPhrase(an.next) + ' близько ' + hh(an.next) + '.';
+      verdict.push('Сухо, найближчі опади ' + dayPhrase(an.next) + '.');
+    } else {
+      rain = 'Сухо весь прогнозований тиждень.';
+      verdict.push('Сухо.');
+    }
+    var wind, wn = M.W[a], dn = FROM[Math.round(M.DIR[a] / 45) % 8];
+    if (wn < 1) wind = 'Штиль.'; else wind = force(wn) + ' вітер ' + dn + ', ' + num(wn, 0) + ' м/с.';
+    if (an.wmax >= Math.max(wn + 2.5, 3) && an.wi !== a) wind += ' Найсильніший ' + dd(an.wi) + 'о ' + hh(an.wi) + ': ' + num(an.wmax, 0) + ' м/с' + (an.gmax >= an.wmax + 3 ? ', пориви до ' + num(an.gmax, 0) + ' м/с' : '') + '.';
+    else if (M.G[a] >= wn + 4) wind += ' Пориви до ' + num(M.G[a], 0) + ' м/с.';
+    if (an.gmax >= 12) verdict.push('Пориви вітру до ' + num(an.gmax, 0) + ' м/с.');
+    return { an: an, frost: frost, rain: rain, wind: wind, verdict: verdict.slice(0, 2).join(' ') };
+  }
+
+  /* ---------- icons and plain-language sky ---------- */
+  var CLOUD = 'M6.5 17.5h10.2a3.8 3.8 0 0 0 .5-7.57 5.3 5.3 0 0 0-10.2 1.3A3.1 3.1 0 0 0 6.5 17.5z';
+  var ICO = {
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/>',
+    moon: '<path d="M19 14.6A7.6 7.6 0 1 1 9.4 5a6.2 6.2 0 0 0 9.6 9.6z"/>',
+    cloud: '<path d="' + CLOUD + '"/>',
+    partly: '<circle cx="8" cy="8" r="2.8"/><path d="M8 2.6v1.2M2.6 8h1.2M4.2 4.2l.9.9M11.8 4.2l-.9.9"/><path fill="var(--bg)" d="' + CLOUD + '" transform="translate(1.5 1.8)"/>',
+    rain: '<path d="' + CLOUD + '" transform="translate(0 -3)"/><path d="M8.5 17l-1 2.8M12.5 17l-1 2.8M16.5 17l-1 2.8"/>',
+    snow: '<path d="' + CLOUD + '" transform="translate(0 -3)"/><circle cx="8" cy="18.2" r=".9" fill="currentColor"/><circle cx="12" cy="20" r=".9" fill="currentColor"/><circle cx="16" cy="18.2" r=".9" fill="currentColor"/>',
+    storm: '<path d="' + CLOUD + '" transform="translate(0 -3)"/><path d="M12.8 14.6 10.4 18.2h3l-1.4 3.2"/>'
+  };
+  function ico(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICO[k] + '</svg>'; }
+  function sky(i) {
+    var wc = M.WC[i] || 0, p = M.P[i], c = M.C[i], night = !M.D[i], t = M.T[i];
+    if (wc >= 95) return { k: 'storm', w: 'Гроза' };
+    if (p >= 0.15) return t <= 0 ? { k: 'snow', w: 'Сніг' } : t <= 1.5 ? { k: 'snow', w: 'Мокрий сніг' } : { k: 'rain', w: 'Дощ' };
+    if (c > 75) return { k: 'cloud', w: 'Хмарно' };
+    if (c > 40) return { k: 'partly', w: 'Мінлива хмарність' };
+    if (c > 20 && !night) return { k: 'partly', w: 'Невелика хмарність' };
+    return night ? { k: 'moon', w: 'Ясно' } : { k: 'sun', w: 'Сонячно' };
+  }
+
+  /* ---------- next 24 hours: time, picture, degrees ---------- */
+  function renderHours() {
+    var a = M.nowIdx, b = Math.min(M.n, a + 25), s = '', i;
+    for (i = a; i < b; i++) {
+      var sk = sky(i), mid = M.hour[i] === 0 && i !== a;
+      s += '<div class="hr' + (mid ? ' nd' : '') + '"><span class="dv">' + (mid ? WDS[M.days[M.dayOf[i]].wd] : '') + '</span>' +
+        '<span class="tm">' + (i === a ? 'Зараз' : pad(M.hour[i]) + ':00') + '</span>' +
+        '<span class="ic" title="' + sk.w + '">' + ico(sk.k) + '</span>' +
+        '<span class="tt' + (M.T[i] <= 0 ? ' fr' : '') + '">' + deg(M.T[i]) + '</span>' +
+        '<span class="mm">' + (M.P[i] >= 0.2 ? num(M.P[i], 1) + ' мм' : '') + '</span></div>';
+    }
+    $('hours').innerHTML = s;
+  }
+
+  /* ---------- days: a picture, a few words, two numbers ---------- */
+  function dayInfo(d) {
+    var mn = 99, mxv = -99, mm = 0, wet = 0, tw = 0, cs = 0, cn = 0, ground = false, storm = false, i;
+    for (i = d.start; i <= d.end; i++) {
+      mn = Math.min(mn, M.T[i]); mxv = Math.max(mxv, M.T[i]); mm += M.P[i];
+      if (M.P[i] >= 0.15) { wet++; tw += M.T[i]; }
+      if (M.D[i]) { cs += M.C[i]; cn++; }
+      if (M.WC[i] >= 95) storm = true;
+      if (M.S[i] <= 0 || (!M.D[i] && M.T[i] <= 2.5 && M.C[i] < 35 && M.W[i] < 3)) ground = true;
+    }
+    var avgC = cn ? cs / cn : 50, k, w;
+    if (storm) { k = 'storm'; w = 'Гроза'; }
+    else if (mm >= 0.5 && wet >= 1) {
+      var tm = tw / wet, snow = tm <= 0, mixed = tm > 0 && tm <= 1.5;
+      k = snow || mixed ? 'snow' : 'rain';
+      w = (snow ? (mm >= 6 ? 'Сильний сніг' : mm < 1.5 ? 'Невеликий сніг' : 'Сніг') : mixed ? 'Мокрий сніг' : (mm >= 10 ? 'Сильний дощ' : mm < 2 ? 'Невеликий дощ' : 'Дощ')) + ', ' + num(mm, mm < 10 ? 1 : 0) + ' мм';
+    } else if (avgC > 75) { k = 'cloud'; w = 'Хмарно, без опадів'; }
+    else if (avgC > 40) { k = 'partly'; w = 'Мінлива хмарність, сухо'; }
+    else { k = 'sun'; w = 'Переважно сонячно, сухо'; }
+    return { k: k, w: w, mn: mn, mx: mxv, note: mn <= -0.5 ? 'Вночі мороз' : (mn <= 1 || ground) ? 'Вночі можливий приморозок' : '' };
+  }
+  function renderDays() {
+    $('days').innerHTML = M.days.map(function (d, k) {
+      var r = dayInfo(d);
+      var nm = k === 0 ? 'Сьогодні' : k === 1 ? 'Завтра' : WDL[d.wd].charAt(0).toUpperCase() + WDL[d.wd].slice(1);
+      return '<div class="day"><span class="ic">' + ico(r.k) + '</span><div class="nm"><b>' + nm + '</b><span>' + r.w + '</span>' + (r.note ? '<em>' + r.note + '</em>' : '') + '</div>' +
+        '<div class="tp"><span>вдень <b>' + deg(r.mx) + '</b></span><span>вночі <b>' + deg(r.mn) + '</b></span></div></div>';
+    }).join('');
+  }
+
+  /* ---------- dangerous weather: our own thresholds, stated in the footnote ---------- */
+  function when(i) { return dayPhrase(i) + ' близько ' + hh(i); }
+  function hazards() {
+    var a = M.nowIdx, n = M.n, out = [], i, j;
+    var g0 = -1, gi = -1, thr = -1, hail = false, ice = -1, hp = -1, tmn = 99, tmi = a, tmx = -99, txi = a;
+    for (i = a; i < n; i++) {
+      if (M.G[i] >= 15) { if (g0 < 0) g0 = i; if (gi < 0 || M.G[i] > M.G[gi]) gi = i; }
+      if (M.WC[i] >= 95 && thr < 0) thr = i;
+      if (M.WC[i] >= 96) hail = true;
+      var fz = M.WC[i] === 56 || M.WC[i] === 57 || M.WC[i] === 66 || M.WC[i] === 67;
+      if (ice < 0 && fz) ice = i;
+      if (ice < 0 && M.P[i] >= 0.3 && M.T[i] > 0.5) {
+        for (j = i + 1; j < Math.min(n, i + 13); j++) { if (M.T[j] <= -1) { ice = j; break; } }
+      }
+      if (M.P[i] >= 5 && (hp < 0 || M.P[i] > M.P[hp])) hp = i;
+      if (M.T[i] < tmn) { tmn = M.T[i]; tmi = i; }
+      if (M.T[i] > tmx) { tmx = M.T[i]; txi = i; }
+    }
+    if (thr >= 0) out.push({ i: thr, t: hail ? 'Гроза з градом' : 'Гроза', s: 'Можлива ' + when(thr) + '.', tip: 'Вимкніть техніку з розетки.' });
+    if (gi >= 0) out.push({ i: g0, t: M.G[gi] >= 25 ? 'Буря' : 'Сильний вітер', s: 'Пориви до ' + num(M.G[gi], 0) + ' м/с, найсильніше ' + when(gi) + '.', tip: 'Закріпіть усе легке надворі.' });
+    if (hp >= 0) out.push({ i: hp, t: 'Злива', s: 'До ' + num(M.P[hp], 0) + ' мм за годину ' + when(hp) + '.' });
+    var best = null;
+    M.days.forEach(function (d) {
+      var mm = 0, tw = 0, c = 0;
+      for (var q = Math.max(d.start, a); q <= d.end; q++) { mm += M.P[q]; if (M.P[q] >= 0.15) { tw += M.T[q]; c++; } }
+      if (!c) return;
+      var snow = tw / c <= 0.5;
+      if ((snow && mm >= 6) || (!snow && mm >= 20)) { if (!best || mm > best.mm) best = { mm: mm, snow: snow, d: d }; }
+    });
+    if (best) out.push({ i: Math.min(n - 1, Math.max(a, best.d.start + 12)), t: best.snow ? 'Сильний снігопад' : 'Сильні опади', s: 'За добу ' + (best.snow ? 'близько ' + num(best.mm, 0) + ' мм опадів снігом' : 'близько ' + num(best.mm, 0) + ' мм') + ', ' + dayPhrase(Math.min(n - 1, Math.max(a, best.d.start + 12))) + '.' });
+    if (ice >= 0) out.push({ i: ice, t: 'Ожеледиця', s: 'Ризик льоду на дорогах і стежках ' + when(ice) + '.', tip: 'Обережно на сходах і дорозі.' });
+    if (tmn <= -15) out.push({ i: tmi, t: 'Сильний мороз', s: 'До ' + deg(tmn) + ' ' + when(tmi) + '.', tip: 'Укрийте те, що не має замерзнути.' });
+    if (tmx >= 30) out.push({ i: txi, t: tmx >= 35 ? 'Сильна спека' : 'Спека', s: 'До ' + deg(tmx) + ' ' + when(txi) + '.', tip: 'Пийте воду, у полудень краще в тіні.' });
+    out.sort(function (x, y) { return x.i - y.i; });
+    return out.slice(0, 5).map(function (x) { x.soon = x.i - a < 24; return x; });
+  }
+  function renderHazards() {
+    var h = hazards();
+    $('hz').innerHTML = h.length
+      ? '<b>Небезпечні явища.</b> ' + h.map(function (x) { return x.t.toLowerCase().replace(/^./, function (c) { return c.toUpperCase(); }) + ': ' + x.s.replace(/\.$/, ''); }).join('. ') + '.'
+      : '<b>Небезпечні явища.</b> Найближчі сім днів не очікуються.';
+  }
+
+  /* ---------- Podillia: the outline only ---------- */
+  var GEO = {"obl":{"vin":[[27.627,48.451],[27.607,48.458],[27.605,48.484],[27.583,48.486],[27.545,48.472],[27.504,48.472],[27.494,48.482],[27.458,48.577],[27.438,48.603],[27.41,48.621],[27.37,48.63],[27.399,48.709],[27.396,48.761],[27.42,48.766],[27.426,48.774],[27.403,48.815],[27.399,48.876],[27.372,48.935],[27.398,48.957],[27.38,48.987],[27.395,49.018],[27.431,49.039],[27.445,49.064],[27.471,49.076],[27.477,49.098],[27.5,49.126],[27.574,49.123],[27.616,49.16],[27.773,49.116],[27.811,49.142],[27.873,49.151],[27.888,49.159],[27.879,49.207],[27.859,49.229],[27.855,49.242],[27.877,49.277],[27.852,49.305],[27.851,49.331],[27.819,49.341],[27.803,49.379],[27.809,49.386],[27.844,49.396],[27.839,49.416],[27.826,49.43],[27.765,49.43],[27.743,49.437],[27.74,49.451],[27.763,49.47],[27.729,49.489],[27.724,49.5],[27.732,49.526],[27.768,49.524],[27.784,49.536],[27.786,49.546],[27.767,49.567],[27.816,49.631],[27.801,49.652],[27.752,49.674],[27.751,49.683],[27.762,49.7],[27.814,49.704],[27.837,49.726],[27.813,49.741],[27.85,49.745],[27.868,49.76],[27.957,49.767],[28.025,49.76],[28.143,49.778],[28.239,49.78],[28.267,49.788],[28.353,49.771],[28.39,49.777],[28.417,49.804],[28.431,49.808],[28.519,49.807],[28.571,49.787],[28.629,49.801],[28.72,49.794],[28.754,49.835],[28.803,49.852],[28.824,49.878],[28.835,49.881],[28.91,49.872],[28.91,49.857],[28.94,49.831],[28.936,49.822],[28.942,49.788],[28.967,49.757],[29.005,49.734],[28.947,49.678],[28.972,49.662],[28.996,49.629],[28.995,49.62],[28.979,49.604],[28.993,49.593],[29.132,49.582],[29.264,49.585],[29.274,49.608],[29.282,49.612],[29.363,49.619],[29.422,49.651],[29.496,49.646],[29.511,49.64],[29.514,49.626],[29.497,49.6],[29.496,49.573],[29.516,49.552],[29.565,49.532],[29.566,49.508],[29.545,49.497],[29.54,49.488],[29.566,49.451],[29.57,49.431],[29.565,49.415],[29.505,49.386],[29.5,49.366],[29.532,49.318],[29.594,49.304],[29.642,49.245],[29.688,49.241],[29.697,49.227],[29.675,49.21],[29.675,49.202],[29.699,49.193],[29.712,49.178],[29.701,49.161],[29.707,49.132],[29.675,49.115],[29.674,49.088],[29.61,49.062],[29.595,49.045],[29.595,49.027],[29.612,49.015],[29.655,49.012],[29.671,49.001],[29.673,48.984],[29.653,48.975],[29.636,48.947],[29.672,48.929],[29.703,48.925],[29.716,48.914],[29.722,48.897],[29.7,48.88],[29.704,48.867],[29.716,48.854],[29.745,48.849],[29.772,48.769],[29.846,48.765],[29.884,48.743],[29.886,48.734],[29.858,48.718],[29.859,48.698],[29.905,48.673],[29.958,48.655],[29.964,48.61],[30.001,48.571],[30.022,48.534],[30.012,48.515],[29.995,48.509],[29.983,48.489],[29.959,48.474],[29.958,48.459],[29.973,48.458],[30.037,48.474],[30.076,48.455],[30.039,48.428],[29.998,48.422],[29.958,48.384],[29.94,48.376],[29.918,48.413],[29.917,48.428],[29.883,48.433],[29.783,48.357],[29.777,48.348],[29.775,48.317],[29.738,48.27],[29.745,48.262],[29.784,48.254],[29.787,48.228],[29.773,48.211],[29.775,48.203],[29.717,48.182],[29.682,48.182],[29.667,48.173],[29.698,48.132],[29.675,48.09],[29.51,48.09],[29.45,48.114],[29.338,48.086],[29.246,48.085],[29.17,48.106],[29.11,48.141],[29.086,48.146],[29.042,48.132],[29.05,48.093],[29.046,48.083],[28.964,48.036],[28.862,48.001],[28.833,48.025],[28.828,48.057],[28.806,48.104],[28.771,48.124],[28.666,48.129],[28.574,48.155],[28.542,48.156],[28.519,48.149],[28.501,48.113],[28.49,48.065],[28.48,48.065],[28.447,48.083],[28.419,48.122],[28.436,48.135],[28.437,48.15],[28.427,48.163],[28.412,48.171],[28.389,48.169],[28.35,48.13],[28.329,48.127],[28.317,48.135],[28.316,48.149],[28.322,48.163],[28.363,48.191],[28.37,48.212],[28.368,48.231],[28.358,48.239],[28.294,48.236],[28.24,48.212],[28.217,48.208],[28.2,48.212],[28.189,48.223],[28.179,48.259],[28.162,48.257],[28.131,48.24],[28.093,48.237],[28.079,48.245],[28.098,48.284],[28.093,48.302],[28.076,48.315],[27.926,48.339],[27.85,48.41],[27.752,48.452],[27.627,48.451]],"khm":[[27.192,50.541],[27.246,50.51],[27.26,50.49],[27.305,50.478],[27.251,50.445],[27.229,50.395],[27.235,50.38],[27.289,50.368],[27.308,50.34],[27.404,50.298],[27.408,50.293],[27.4,50.277],[27.426,50.275],[27.443,50.259],[27.481,50.248],[27.488,50.224],[27.55,50.218],[27.583,50.255],[27.599,50.256],[27.607,50.249],[27.608,50.202],[27.65,50.161],[27.647,50.149],[27.627,50.138],[27.648,50.117],[27.627,50.095],[27.621,50.079],[27.633,50.068],[27.661,50.058],[27.664,50.033],[27.657,50.022],[27.635,50.019],[27.609,50.004],[27.544,50.007],[27.581,49.951],[27.546,49.941],[27.544,49.911],[27.597,49.893],[27.599,49.866],[27.642,49.827],[27.661,49.799],[27.868,49.76],[27.85,49.745],[27.813,49.741],[27.837,49.726],[27.822,49.708],[27.805,49.701],[27.769,49.704],[27.753,49.687],[27.755,49.67],[27.801,49.652],[27.816,49.631],[27.767,49.567],[27.786,49.546],[27.784,49.536],[27.768,49.524],[27.732,49.526],[27.724,49.5],[27.729,49.489],[27.763,49.47],[27.74,49.451],[27.743,49.437],[27.765,49.43],[27.826,49.43],[27.839,49.416],[27.844,49.396],[27.809,49.386],[27.803,49.379],[27.819,49.341],[27.851,49.331],[27.852,49.305],[27.877,49.277],[27.855,49.242],[27.859,49.229],[27.879,49.207],[27.888,49.159],[27.873,49.151],[27.811,49.142],[27.773,49.116],[27.616,49.16],[27.574,49.123],[27.5,49.126],[27.489,49.118],[27.471,49.076],[27.445,49.064],[27.431,49.039],[27.395,49.018],[27.381,48.992],[27.398,48.957],[27.374,48.939],[27.372,48.93],[27.399,48.876],[27.408,48.801],[27.426,48.774],[27.42,48.766],[27.396,48.761],[27.402,48.732],[27.393,48.684],[27.37,48.63],[27.335,48.602],[27.322,48.601],[27.295,48.616],[27.234,48.618],[27.236,48.606],[27.262,48.596],[27.261,48.582],[27.248,48.57],[27.226,48.568],[27.181,48.582],[27.147,48.582],[27.123,48.561],[27.113,48.559],[27.038,48.568],[27.023,48.561],[27.004,48.575],[26.945,48.581],[26.925,48.575],[26.885,48.544],[26.859,48.54],[26.841,48.546],[26.828,48.561],[26.823,48.581],[26.829,48.602],[26.819,48.607],[26.798,48.608],[26.788,48.602],[26.783,48.593],[26.788,48.568],[26.773,48.551],[26.759,48.551],[26.75,48.562],[26.741,48.589],[26.717,48.595],[26.712,48.585],[26.716,48.578],[26.739,48.558],[26.734,48.541],[26.722,48.535],[26.633,48.562],[26.613,48.551],[26.614,48.54],[26.688,48.518],[26.705,48.507],[26.709,48.497],[26.654,48.491],[26.644,48.493],[26.627,48.508],[26.616,48.507],[26.607,48.492],[26.622,48.458],[26.606,48.452],[26.566,48.457],[26.553,48.466],[26.515,48.515],[26.471,48.538],[26.422,48.53],[26.404,48.534],[26.381,48.517],[26.354,48.562],[26.372,48.574],[26.307,48.606],[26.316,48.643],[26.3,48.637],[26.285,48.641],[26.282,48.662],[26.254,48.667],[26.237,48.68],[26.244,48.736],[26.251,48.752],[26.229,48.779],[26.241,48.8],[26.264,48.808],[26.235,48.821],[26.217,48.837],[26.223,48.897],[26.217,48.902],[26.195,48.9],[26.192,48.906],[26.202,48.935],[26.189,48.957],[26.204,48.965],[26.199,48.989],[26.221,49.001],[26.199,49.041],[26.225,49.063],[26.232,49.079],[26.211,49.119],[26.221,49.152],[26.204,49.167],[26.198,49.185],[26.208,49.227],[26.245,49.244],[26.258,49.29],[26.234,49.319],[26.239,49.347],[26.229,49.397],[26.195,49.419],[26.148,49.517],[26.168,49.548],[26.209,49.567],[26.221,49.617],[26.246,49.638],[26.254,49.658],[26.206,49.696],[26.206,49.71],[26.231,49.734],[26.233,49.779],[26.187,49.822],[26.193,49.866],[26.157,49.894],[26.166,49.927],[26.151,49.965],[26.17,49.979],[26.231,49.994],[26.233,50.011],[26.208,50.016],[26.195,50.027],[26.223,50.04],[26.232,50.059],[26.205,50.086],[26.26,50.094],[26.269,50.101],[26.273,50.113],[26.258,50.127],[26.207,50.141],[26.303,50.176],[26.384,50.244],[26.48,50.254],[26.518,50.284],[26.564,50.306],[26.591,50.334],[26.643,50.359],[26.65,50.384],[26.703,50.414],[26.732,50.444],[26.74,50.465],[26.797,50.461],[26.798,50.489],[26.807,50.501],[26.901,50.532],[26.949,50.519],[26.976,50.519],[27.023,50.546],[27.072,50.559],[27.084,50.58],[27.098,50.587],[27.126,50.582],[27.132,50.555],[27.138,50.551],[27.192,50.541]],"ter":[[26.065,50.265],[26.154,50.242],[26.222,50.262],[26.231,50.249],[26.202,50.209],[26.205,50.199],[26.23,50.182],[26.233,50.152],[26.207,50.141],[26.258,50.127],[26.273,50.113],[26.269,50.101],[26.26,50.094],[26.205,50.086],[26.232,50.059],[26.223,50.04],[26.195,50.027],[26.208,50.016],[26.233,50.011],[26.231,49.994],[26.17,49.979],[26.151,49.965],[26.166,49.927],[26.157,49.894],[26.193,49.866],[26.187,49.822],[26.233,49.779],[26.231,49.734],[26.206,49.71],[26.206,49.696],[26.254,49.658],[26.246,49.638],[26.221,49.617],[26.209,49.567],[26.168,49.548],[26.149,49.512],[26.195,49.419],[26.229,49.397],[26.239,49.347],[26.234,49.319],[26.258,49.29],[26.245,49.244],[26.214,49.232],[26.205,49.218],[26.198,49.18],[26.221,49.152],[26.211,49.119],[26.231,49.075],[26.199,49.041],[26.221,49.001],[26.199,48.989],[26.204,48.965],[26.189,48.957],[26.202,48.935],[26.193,48.902],[26.223,48.897],[26.217,48.837],[26.235,48.821],[26.264,48.808],[26.241,48.8],[26.229,48.779],[26.251,48.752],[26.235,48.685],[26.254,48.667],[26.282,48.662],[26.285,48.641],[26.3,48.637],[26.316,48.643],[26.307,48.606],[26.372,48.574],[26.354,48.562],[26.381,48.517],[26.355,48.51],[26.327,48.512],[26.257,48.533],[26.181,48.527],[26.149,48.54],[26.146,48.596],[26.133,48.609],[26.105,48.611],[26.102,48.607],[26.106,48.581],[26.13,48.555],[26.117,48.542],[26.08,48.547],[26.053,48.572],[26.062,48.628],[26.059,48.642],[26.049,48.648],[26.033,48.643],[26.02,48.616],[25.986,48.624],[25.96,48.596],[25.928,48.587],[25.863,48.601],[25.86,48.619],[25.794,48.67],[25.767,48.658],[25.753,48.633],[25.742,48.63],[25.731,48.635],[25.723,48.659],[25.715,48.664],[25.671,48.667],[25.636,48.678],[25.646,48.697],[25.628,48.718],[25.64,48.745],[25.629,48.76],[25.565,48.793],[25.506,48.805],[25.461,48.825],[25.45,48.836],[25.471,48.862],[25.447,48.869],[25.432,48.867],[25.431,48.849],[25.356,48.855],[25.351,48.85],[25.354,48.814],[25.328,48.815],[25.277,48.781],[25.251,48.775],[25.239,48.801],[25.25,48.818],[25.307,48.828],[25.328,48.842],[25.274,48.859],[25.25,48.859],[25.225,48.842],[25.227,48.887],[25.246,48.931],[25.219,48.929],[25.197,48.918],[25.183,48.904],[25.174,48.872],[25.166,48.865],[25.123,48.908],[25.13,48.934],[25.129,48.944],[25.12,48.951],[25.067,48.972],[24.993,48.97],[24.964,48.993],[24.95,49.021],[24.898,49.04],[24.894,49.054],[24.904,49.061],[24.966,49.048],[24.986,49.052],[24.993,49.064],[24.982,49.099],[24.967,49.113],[24.917,49.123],[24.88,49.111],[24.86,49.119],[24.86,49.152],[24.851,49.175],[24.881,49.202],[24.879,49.229],[24.867,49.25],[24.838,49.262],[24.823,49.314],[24.833,49.34],[24.804,49.389],[24.707,49.492],[24.72,49.51],[24.733,49.56],[24.775,49.563],[24.948,49.627],[25.022,49.718],[25.067,49.711],[25.101,49.725],[25.107,49.744],[25.078,49.78],[25.093,49.816],[25.245,49.836],[25.39,49.88],[25.397,49.893],[25.387,49.914],[25.393,49.927],[25.428,49.935],[25.434,49.945],[25.407,49.977],[25.373,49.996],[25.368,50.006],[25.37,50.028],[25.381,50.037],[25.411,50.028],[25.416,50.069],[25.448,50.083],[25.467,50.105],[25.441,50.132],[25.453,50.163],[25.497,50.159],[25.567,50.141],[25.607,50.161],[25.636,50.151],[25.676,50.171],[25.809,50.179],[25.947,50.265],[26.022,50.253],[26.065,50.265]]},"view":[23.51,47.2,31.28,51.39]};
+  var MK = Math.cos(49.3 * Math.PI / 180), MU = 105, V = GEO.view;
+  function mx(lon) { return (lon - V[0]) * MK * MU; }
+  function my(lat) { return (V[3] - lat) * MU; }
+  function ringPath(r) { return 'M' + r.map(function (c) { return mx(c[0]).toFixed(1) + ',' + my(c[1]).toFixed(1); }).join('L') + 'Z'; }
+  var SB = (function () {
+    var xs = [], ys = [];
+    for (var k in GEO.obl) GEO.obl[k].forEach(function (c) { xs.push(mx(c[0])); ys.push(my(c[1])); });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    return { x0: x0, y0: y0, w: x1 - x0, h: y1 - y0 };
+  })();
+  function renderMap() {
+    var svg = $('map'), k, m = 8, px = svg.getBoundingClientRect().width || 150, sc = px / (SB.w + 2 * m);
+    svg.setAttribute('viewBox', (SB.x0 - m).toFixed(1) + ' ' + (SB.y0 - m).toFixed(1) + ' ' + (SB.w + 2 * m).toFixed(1) + ' ' + (SB.h + 2 * m).toFixed(1));
+    svg.setAttribute('aria-label', place ? 'Контур Поділля. Позначено ' + place.name + '.' : 'Контур Поділля');
+    var s = '', lo = '', li = '';
+    for (k in GEO.obl) {
+      var d = ringPath(GEO.obl[k]);
+      lo += '<path class="mo" stroke-width="' + (2.8 / sc).toFixed(2) + '" d="' + d + '"/>';
+      li += '<path class="mi" stroke-width="' + (0.8 / sc).toFixed(2) + '" d="' + d + '"/>';
+    }
+    s += lo + li;
+    if (place && place.lon > V[0] && place.lon < V[2] && place.lat > V[1] && place.lat < V[3]) {
+      var x = mx(place.lon), y = my(place.lat), r = 3.6 / sc, fs = 13 / sc;
+      var right = x < SB.x0 + SB.w * 0.6;
+      s += '<circle class="ring" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r.toFixed(1) + '" stroke-width="' + (1 / sc).toFixed(2) + '"/>';
+      s += '<circle class="pin" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r.toFixed(1) + '"/>';
+      s += '<text x="' + (x + (right ? 1 : -1) * (r + 5 / sc)).toFixed(1) + '" y="' + (y + fs * 0.34).toFixed(1) + '" text-anchor="' + (right ? 'start' : 'end') + '" font-size="' + fs.toFixed(1) + '" font-weight="500" fill="var(--ink)" paint-order="stroke" stroke="var(--bg)" stroke-width="' + (3 / sc).toFixed(2) + '" stroke-linejoin="round">' + place.name + '</text>';
+    }
+    svg.innerHTML = s;
+  }
+
+  /* ---------- page ---------- */
+  function render(source) {
+    var cp = copy();
+    $('placeName').textContent = place.name;
+    $('t').textContent = num(M.curT, 0);
+    $('cond').textContent = condText();
+    var df = M.curA - M.curT;
+    $('feels').textContent = Math.abs(df) >= 1.5 ? 'Відчувається як ' + deg(M.curA) : '';
+    $('verdict').textContent = cp.verdict;
+    $('sFrost').textContent = cp.frost; $('sFrost').className = cp.an.level === 'air' ? 'cold' : '';
+    $('sRain').textContent = cp.rain; $('sWind').textContent = cp.wind;
+    var sk = sky(M.nowIdx); $('bic').innerHTML = ico(sk.k);
+    document.documentElement.setAttribute('data-sky', sk.k === 'sun' || sk.k === 'partly' ? 'sun' : sk.k === 'moon' ? 'night' : sk.k === 'cloud' ? 'cloud' : 'rain');
+    renderHazards(); renderHours(); renderDays(); renderMap();
+    var st = M.demo ? 'Демо-дані' : source === 'cache' ? 'Збережено о ' + M.stamp + ', без зв’язку' : 'Оновлено о ' + M.stamp;
+    $('status').textContent = st;
+    var rules = ' Небезпечні явища позначаємо за власними порогами (пориви від 15 м/с, злива від 5 мм за годину, сильні опади від 20 мм за добу, мороз від −15°, спека від 30°). Це не офіційне попередження: його дають ДСНС та Укргідрометцентр.';
+    $('src').textContent = (M.demo
+      ? 'Це макет на демо-даних: у цьому перегляді немає доступу до мережі. У встановленій апці прогноз бере Open-Meteo.com (CC BY 4.0).'
+      : 'Дані: Open-Meteo.com (CC BY 4.0).') + ' Оцінка приморозку: ясне небо, слабкий вітер і температура ґрунту, це не гарантія.' + rules;
+    document.title = 'Подих';
+  }
+
+  var HOURLY = 'temperature_2m,apparent_temperature,precipitation,precipitation_probability,cloud_cover,wind_speed_10m,wind_gusts_10m,wind_direction_10m,soil_temperature_0cm,is_day,weather_code';
+  function fetchJson(url, ms) {
+    var ctl = new AbortController(), tm = setTimeout(function () { ctl.abort(); }, ms);
+    return fetch(url, { signal: ctl.signal }).then(function (r) { clearTimeout(tm); if (!r.ok) throw new Error('http ' + r.status); return r.json(); });
+  }
+  function load() {
+    var key = 'podykh-cache-' + place.lat.toFixed(2) + ',' + place.lon.toFixed(2);
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + place.lat + '&longitude=' + place.lon +
+      '&hourly=' + HOURLY + '&current=temperature_2m,apparent_temperature&timezone=auto&forecast_days=7&wind_speed_unit=ms';
+    $('status').textContent = 'Оновлюю';
+    return fetchJson(url, 8000).then(function (j) {
+      M = fromApi(j); lsSet(key, j); render('live');
+    }).catch(function () {
+      var cached = lsGet(key, null);
+      if (cached) { try { M = fromApi(cached); render('cache'); return; } catch (e) {} }
+      M = demo(); render('demo');
+    });
+  }
+  function setPlace(p, persist) {
+    place = p; if (persist !== false) lsSet('podykh-active', p);
+    closeSheet(); load();
+  }
+
+  /* ---------- place sheet ---------- */
+  function openSheet() { $('scrim').hidden = false; renderSaved(); $('q').focus(); }
+  function closeSheet() { $('scrim').hidden = true; }
+  function renderSaved() {
+    var ul = $('saved');
+    ul.innerHTML = places.length ? '' : '<li><span class="msg" style="margin:10px 0">Поки порожньо</span></li>';
+    places.forEach(function (p, i) {
+      var li = document.createElement('li');
+      li.innerHTML = '<button class="pick"></button><button class="del" aria-label="Видалити">×</button>';
+      var b = li.querySelector('.pick'); b.textContent = p.name;
+      var sm = document.createElement('small'); sm.textContent = num(p.lat, 2) + ', ' + num(p.lon, 2); b.appendChild(sm);
+      b.addEventListener('click', function () { setPlace(p); });
+      li.querySelector('.del').addEventListener('click', function () { places.splice(i, 1); lsSet('podykh-places', places); renderSaved(); });
+      ul.appendChild(li);
+    });
+  }
+  function gps(auto) {
+    var m = $('gpsMsg');
+    if (!navigator.geolocation) { if (!auto) { m.hidden = false; m.textContent = 'Цей пристрій не віддає місцезнаходження.'; } return Promise.resolve(false); }
+    if (!auto) { m.hidden = false; m.textContent = 'Шукаю вас…'; }
+    return new Promise(function (res) {
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        setPlace({ name: 'Моє місце', lat: +pos.coords.latitude.toFixed(4), lon: +pos.coords.longitude.toFixed(4), gps: true });
+        m.hidden = true; res(true);
+      }, function () {
+        if (!auto) { m.hidden = false; m.textContent = 'Немає дозволу на місцезнаходження. Знайдіть місце за назвою.'; }
+        res(false);
+      }, { timeout: 8000, maximumAge: 600000 });
+    });
+  }
+  var qt = null;
+  function search(q) {
+    var ul = $('results'), m = $('qMsg'); ul.innerHTML = ''; m.hidden = true;
+    if (q.length < 2) return;
+    fetchJson('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=8&language=uk&format=json', 7000).then(function (j) {
+      var r = j.results || [];
+      if (!r.length) { m.hidden = false; m.textContent = 'Нічого не знайдено. Дрібні села в базі бувають неповні: оберіть точку через місцезнаходження.'; return; }
+      r.forEach(function (x) {
+        var li = document.createElement('li'), b = document.createElement('button'); b.className = 'pick';
+        b.textContent = x.name; var sm = document.createElement('small'); sm.textContent = [x.admin2, x.admin1, x.country].filter(Boolean).join(', '); b.appendChild(sm);
+        b.addEventListener('click', function () { setPlace({ name: x.name, lat: x.latitude, lon: x.longitude }); });
+        li.appendChild(b); ul.appendChild(li);
+      });
+    }).catch(function () { m.hidden = false; m.textContent = 'Пошук доступний у встановленій апці з мережею.'; });
+  }
+  $('q').addEventListener('input', function (e) { clearTimeout(qt); var v = e.target.value.trim(); qt = setTimeout(function () { search(v); }, 350); });
+  $('gpsBtn').addEventListener('click', function () { gps(false); });
+  $('saveBtn').addEventListener('click', function () {
+    var nm = $('saveName').value.trim(); if (!nm || !place) return;
+    places.push({ name: nm, lat: place.lat, lon: place.lon }); lsSet('podykh-places', places);
+    place = { name: nm, lat: place.lat, lon: place.lon }; lsSet('podykh-active', place); $('saveName').value = ''; $('placeName').textContent = nm; renderSaved();
+  });
+  $('placeBtn').addEventListener('click', openSheet);
+  $('shClose').addEventListener('click', closeSheet);
+  $('scrim').addEventListener('click', function (e) { if (e.target === $('scrim')) closeSheet(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
+
+  var rt = null;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(renderMap, 150); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && M && !M.demo && place) { var s = M.stamp.split(':'), now = new Date(); if (Math.abs(now.getHours() * 60 + now.getMinutes() - (+s[0] * 60 + +s[1])) > 20) load(); }
+  });
+
+  /* ---------- start ---------- */
+  if (place) load();
+  else {
+    $('placeName').textContent = 'Оберіть місце';
+    $('verdict').textContent = 'Щоб побачити прогноз, оберіть місце.';
+    renderMap(); openSheet();
+  }
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }
+</script>
+</body>
+</html>

@@ -174,7 +174,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   <p class="verdict" id="verdict"></p>
 
   <dl class="signals">
-    <div id="rowFrost"><dt>Заморозок</dt><dd id="sFrost"></dd></div>
+    <div id="rowFrost"><dt>Вночі</dt><dd id="sFrost"></dd></div>
     <div><dt>Опади</dt><dd id="sRain"></dd></div>
     <div><dt>Вітер</dt><dd id="sWind"></dd></div>
   </dl>
@@ -350,14 +350,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     var an = analyse(), a = M.nowIdx, night = !M.D[an.ti];
     var frost, verdict = [];
     if (an.level === 'air') {
-      frost = 'Мінімум ' + deg1(an.tmin) + ' ' + dd(an.ti) + 'о ' + hh(an.ti) + ', ґрунт до ' + deg1(an.smin) + '.';
+      frost = 'Мінімум ' + deg1(an.tmin) + ' ' + dd(an.ti) + 'о ' + hh(an.ti) + ', це мороз. Ґрунт до ' + deg1(an.smin) + '.';
       verdict.push((night ? 'Вночі мороз' : 'Мороз') + ' до ' + deg(an.tmin) + '.');
     } else if (an.level === 'ground') {
-      if (an.smin <= 0) frost = 'Повітря не нижче ' + deg1(an.tmin) + ', але ґрунт до ' + deg1(an.smin) + ' ' + dd(an.si) + 'о ' + hh(an.si) + '.';
-      else frost = 'Повітря ' + deg1(an.tmin) + ', але ясно й тихо, на ґрунті можливий приморозок ' + dd(an.gi) + 'близько ' + hh(an.gi) + '.';
+      if (an.smin <= 0) frost = 'Мінімум ' + deg1(an.tmin) + ', але на ґрунті приморозок до ' + deg1(an.smin) + ' ' + dd(an.si) + 'о ' + hh(an.si) + '.';
+      else frost = 'Мінімум ' + deg1(an.tmin) + ', але ясно й тихо: на ґрунті можливий приморозок ' + dd(an.gi) + 'близько ' + hh(an.gi) + '.';
       verdict.push('Можливий приморозок на ґрунті.');
     } else {
-      frost = 'Без заморозку, мінімум ' + deg1(an.tmin) + ' ' + dd(an.ti) + 'о ' + hh(an.ti) + '.';
+      frost = 'Мінімум ' + deg1(an.tmin) + ' ' + dd(an.ti) + 'о ' + hh(an.ti) + '.';
       if (an.nextFrost) { var nf = an.nextFrost; frost += ' Наступний ' + nf.kind + ' ' + dayPhrase(nf.i) + '.'; }
       if (an.tmin <= 6) verdict.push('Заморозку не буде.');
     }
@@ -544,8 +544,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     var df = M.curA - M.curT;
     $('feels').textContent = Math.abs(df) >= 1.5 ? 'Відчувається як ' + deg(M.curA) : '';
     $('verdict').textContent = cp.verdict;
-    var fr = cp.an.level !== 'none' || (cp.an.nextFrost && cp.an.nextFrost.i - M.nowIdx <= 72) || cp.an.tmin <= 3;
-    $('rowFrost').hidden = !fr;
     $('sFrost').textContent = cp.frost; $('sFrost').className = cp.an.level === 'air' ? 'cold' : '';
     $('sRain').textContent = cp.rain; $('sWind').textContent = cp.wind;
     var sk = sky(M.nowIdx); $('bic').innerHTML = ico(sk.k);

@@ -381,8 +381,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     for (i = d0.start; i <= Math.max(endToday, a); i++) { if (wet(i)) { wetToday++; if (!drizzle(i)) dzToday = false; } if (i >= a) ppToday = Math.max(ppToday, M.PP[i]); }
     var skyPart = wetToday ? ', часом ' + (dzToday ? 'мряка' : 'дощ') : ppToday >= 30 ? ', можливий дощ' : ppToday < 15 ? ' й сухо' : '';
     var verdict;
-    if (wet(a)) verdict = 'Зараз ' + (M.T[a] > 1.5 && drizzle(a) ? 'мряка' : phase(M.T[a]).toLowerCase()) + ', ' + deg(M.curT) + '.';
-    else if (M.D[a]) verdict = 'Сьогодні ' + feel(tmax) + skyPart + ', до ' + deg(tmax) + '.';
+    if (M.D[a]) verdict = 'Сьогодні ' + feel(tmax) + skyPart + ', до ' + deg(tmax) + '.';
     else verdict = 'Зараз ' + feel(M.curT) + skyPart + ', ' + deg(M.curT) + '.';
     if (!an.seg) {
       if (an.next >= 0) verdict += ' Наступний ' + phase(M.T[an.next]).toLowerCase() + ' ' + whenPart(an.next) + '.';
@@ -393,7 +392,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
       var sg = an.seg, ph = sg.ph.toLowerCase(), what = sg.dz && ph === 'дощ' ? 'мряка' : amount(sg.mm) + ' ' + ph;
       var pr = Math.round(Math.max.apply(null, M.PP.slice(sg.s, sg.e + 1)) / 10) * 10;
       var odds = pr && pr < 50 ? ', ймовірність ' + pr + '%' : '';
-      if (sg.s === a) lines.push('Зараз ' + what + ', закінчиться ' + whenPart(Math.min(M.n - 1, sg.e + 1)) + '.');
+      var endI = Math.min(M.n - 1, sg.e + 1), endW = M.dayOf[endI] === M.dayOf[a] && partOf(endI) === partOf(a) ? 'близько ' + hh(endI) : whenPart(endI);
+      if (sg.s === a) lines.push('Зараз ' + what + ', має скінчитися ' + endW + '.');
       else lines.push(cap(whenPart(sg.s)) + ' ' + what + odds + '.');
     }
     /* cold, only when it matters */

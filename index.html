@@ -113,8 +113,16 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
 .ic { text-align: center; }
 
 .days { margin-top: 10px; border-top: 1px solid var(--line); }
-.day { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.day { cursor: pointer; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto 10px; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .day .nm { min-width: 0; }
+.chev { width: 8px; height: 8px; border-right: 1.6px solid var(--ink3); border-bottom: 1.6px solid var(--ink3); transform: rotate(45deg); margin-top: -4px; transition: transform .2s; }
+.day[aria-expanded="true"] .chev { transform: rotate(-135deg); margin-top: 4px; }
+.day[aria-expanded="true"] { border-bottom-color: transparent; }
+.dd { padding: 0 0 16px; border-bottom: 1px solid var(--line); }
+.dd .dh { margin-top: 12px; }
+.dd p { margin: 8px 0 0; font-size: 16px; line-height: 1.45; color: var(--ink); }
+.day:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.hint2 { margin: 6px 0 0; font-size: 13px; color: var(--ink3); }
 .day .nm b { display: block; font-size: 18px; font-weight: 500; }
 .day .nm span { display: block; margin-top: 2px; font-size: 15px; color: var(--ink2); }
 .day .nm em { display: block; margin-top: 2px; font-size: 14.5px; font-style: normal; color: var(--cold); }
@@ -176,6 +184,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   <section class="hours" id="hours" aria-label="Погода по годинах"></section>
 
   <h2 class="sec">Наступні дні</h2>
+  <p class="hint2">Торкніться дня, щоб побачити його по годинах.</p>
   <section class="days" id="days" aria-label="Прогноз по днях"></section>
 
   <p class="note" id="hz"></p>
@@ -391,7 +400,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     if (an.seg) {
       var sg = an.seg, ph = sg.ph.toLowerCase(), what = sg.dz && ph === 'дощ' ? 'мряка' : amount(sg.mm) + ' ' + ph;
       var pr = Math.round(Math.max.apply(null, M.PP.slice(sg.s, sg.e + 1)) / 10) * 10;
-      var odds = pr && pr < 50 ? ', ймовірність ' + pr + '%' : '';
+      var odds = pr ? ', ймовірність ' + pr + '%' : '';
       var endI = Math.min(M.n - 1, sg.e + 1), endW = M.dayOf[endI] === M.dayOf[a] && partOf(endI) === partOf(a) ? 'близько ' + hh(endI) : whenPart(endI);
       if (sg.s === a) lines.push('Зараз ' + what + ', має скінчитися ' + endW + '.');
       else lines.push(cap(whenPart(sg.s)) + ' ' + what + odds + '.');
@@ -451,16 +460,17 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   }
 
   /* ---------- next 24 hours: time, picture, degrees ---------- */
+  function cell(i, first) {
+    var sk = sky(i), mid = M.hour[i] === 0 && !first;
+    return '<div class="hr' + (mid ? ' nd' : '') + '"><span class="dv">' + (mid ? WDS[M.days[M.dayOf[i]].wd] : '') + '</span>' +
+      '<span class="tm">' + (i === M.nowIdx ? 'Зараз' : pad(M.hour[i]) + ':00') + '</span>' +
+      '<span class="ic" title="' + sk.w + '">' + ico(sk.k) + '</span>' +
+      '<span class="tt' + (M.T[i] <= 0 ? ' fr' : '') + '">' + deg(M.T[i]) + '</span>' +
+      '<span class="mm">' + (M.PP[i] >= 20 && (wet(i) || M.PP[i] >= 40) ? Math.round(M.PP[i] / 10) * 10 + '%' : '') + '</span></div>';
+  }
   function renderHours() {
     var a = M.nowIdx, b = Math.min(M.n, a + 25), s = '', i;
-    for (i = a; i < b; i++) {
-      var sk = sky(i), mid = M.hour[i] === 0 && i !== a;
-      s += '<div class="hr' + (mid ? ' nd' : '') + '"><span class="dv">' + (mid ? WDS[M.days[M.dayOf[i]].wd] : '') + '</span>' +
-        '<span class="tm">' + (i === a ? 'Зараз' : pad(M.hour[i]) + ':00') + '</span>' +
-        '<span class="ic" title="' + sk.w + '">' + ico(sk.k) + '</span>' +
-        '<span class="tt' + (M.T[i] <= 0 ? ' fr' : '') + '">' + deg(M.T[i]) + '</span>' +
-        '<span class="mm">' + (M.PP[i] >= 20 && (wet(i) || M.PP[i] >= 40) ? Math.round(M.PP[i] / 10) * 10 + '%' : '') + '</span></div>';
-    }
+    for (i = a; i < b; i++) s += cell(i, i === a);
     $('hours').innerHTML = s;
   }
 
@@ -489,14 +499,49 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     }
     return { k: k, w: w, pp: (k === 'rain' || k === 'snow' || k === 'storm') && pp >= 20 ? Math.round(pp / 10) * 10 : 0, mn: mn, mx: mxv, note: mn <= -0.5 ? 'Вночі мороз' : (mn <= 1 || ground) ? 'Вночі можливий приморозок' : '' };
   }
+  var openDay = -1;
+  function pct(x) { return Math.round(x / 10) * 10; }
+  function dayDetail(d) {
+    var from = Math.max(d.start, M.nowIdx), i, h = '', lines = [];
+    if (from > d.end) from = d.start;
+    for (i = from; i <= d.end; i++) h += cell(i, i === from);
+    function at(hr) { for (var j = d.start; j <= d.end; j++) if (M.hour[j] === hr) return j; return -1; }
+    var parts = [['зранку', 8], ['вдень', 14], ['ввечері', 20]].map(function (p) { var j = at(p[1]); return j >= 0 && j >= M.nowIdx - 0 ? p[0] + ' ' + deg(M.T[j]) : ''; }).filter(Boolean);
+    var night = 99; for (i = d.start; i <= d.end; i++) if (M.hour[i] < 6) night = Math.min(night, M.T[i]);
+    if (night < 99) parts.unshift('вночі ' + deg(night));
+    if (parts.length) lines.push(cap(parts.join(', ')) + '.');
+    var pp = 0, pi = -1, mm = 0;
+    for (i = d.start; i <= d.end; i++) { mm += M.P[i]; if (M.PP[i] > pp) { pp = M.PP[i]; pi = i; } }
+    if (pp >= 20) lines.push('Ймовірність дощу ' + pct(pp) + '%, найімовірніше ' + partOf(pi) + (mm >= 0.5 ? ', близько ' + num(mm, mm < 10 ? 1 : 0) + ' мм за день' : '') + '.');
+    else lines.push('Ймовірність дощу низька, ' + (pp < 5 ? 'менше 5%' : pct(pp) + '%') + '.');
+    var wm = 0, wi = d.start, gm = 0;
+    for (i = d.start; i <= d.end; i++) { if (M.W[i] > wm) { wm = M.W[i]; wi = i; } gm = Math.max(gm, M.G[i]); }
+    lines.push(wm < 1 ? 'Майже без вітру.' : force(wm) + ' вітер ' + FROM[Math.round(M.DIR[wi] / 45) % 8] + ', до ' + num(wm, 0) + ' м/с' + (gm >= wm + 3 ? ', пориви до ' + num(gm, 0) + ' м/с' : '') + '.');
+    return '<div class="dd">' + lines.map(function (t) { return '<p>' + t + '</p>'; }).join('') + '<div class="hours dh">' + h + '</div></div>';
+  }
   function renderDays() {
     $('days').innerHTML = M.days.map(function (d, k) {
-      var r = dayInfo(d);
+      var r = dayInfo(d), open = k === openDay;
       var nm = k === 0 ? 'Сьогодні' : k === 1 ? 'Завтра' : WDL[d.wd].charAt(0).toUpperCase() + WDL[d.wd].slice(1);
-      return '<div class="day"><span class="ic">' + ico(r.k) + (r.pp ? '<span class="pp">' + r.pp + '%</span>' : '') + '</span><div class="nm"><b>' + nm + '</b><span>' + r.w + '</span>' + (r.note ? '<em>' + r.note + '</em>' : '') + '</div>' +
-        '<div class="tp"><span>вдень <b>' + deg(r.mx) + '</b></span><span>вночі <b>' + deg(r.mn) + '</b></span></div></div>';
+      return '<div class="day" role="button" tabindex="0" aria-expanded="' + open + '" data-k="' + k + '"><span class="ic">' + ico(r.k) + (r.pp ? '<span class="pp">' + r.pp + '%</span>' : '') + '</span><div class="nm"><b>' + nm + '</b><span>' + r.w + '</span>' + (r.note ? '<em>' + r.note + '</em>' : '') + '</div>' +
+        '<div class="tp"><span>вдень <b>' + deg(r.mx) + '</b></span><span>вночі <b>' + deg(r.mn) + '</b></span></div><span class="chev" aria-hidden="true"></span></div>' + (open ? dayDetail(d) : '');
     }).join('');
   }
+  function toggleDay(e) {
+    var row = e.target.closest && e.target.closest('.day'); if (!row) return;
+    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+    if (e.type === 'keydown') e.preventDefault();
+    var k = +row.getAttribute('data-k'); openDay = openDay === k ? -1 : k; renderDays();
+    var strip = document.querySelector('.dd .dh');
+    if (strip && k > 0) {   /* a future day: start the strip at 07:00, or at the first rainy hour if that comes later */
+      var d = M.days[k], j0 = d.start + 7;
+      for (var q = d.start + 7; q <= d.end; q++) if (wet(q)) { j0 = q; break; }
+      var c = strip.children[Math.max(0, j0 - d.start - 1)]; if (c) strip.scrollLeft = c.offsetLeft - strip.offsetLeft;
+    }
+    var again = document.querySelector('.day[data-k="' + k + '"]'); if (again && openDay === k) again.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  $('days').addEventListener('click', toggleDay);
+  $('days').addEventListener('keydown', toggleDay);
 
   /* ---------- dangerous weather: our own thresholds, stated in the footnote ---------- */
   function when(i) { return dayPhrase(i) + ' близько ' + hh(i); }

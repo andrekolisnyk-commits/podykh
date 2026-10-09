@@ -263,20 +263,42 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     });
     return Object.assign({ n: n, dayOf: dayOf, hour: hour, days: days }, o);
   }
+  /* Two models: ICON (DWD) as the base, ECMWF as the second opinion on rain.
+     Keys come suffixed per model; an older cached answer without suffixes still works. */
+  var MODELS = ['icon_seamless', 'ecmwf_ifs025'];
   function fromApi(j) {
     var h = j.hourly, n = h.time.length;
     function arr(a, fb) { if (!a) return new Array(n).fill(0); return a.map(function (v, i) { return v == null ? (fb ? fb[i] : 0) : v; }); }
-    var T = arr(h.temperature_2m), cur = j.current || {};
+    function pick(name, fb) {
+      var A = h[name + '_' + MODELS[0]], B = h[name + '_' + MODELS[1]], U = h[name];
+      if (!A && !B) return arr(U, fb);
+      return arr((A || B).map(function (v, i) { return v == null ? (B && B[i] != null ? B[i] : null) : v; }), fb);
+    }
+    function each(name) { var out = MODELS.map(function (m) { return h[name + '_' + m]; }).filter(Boolean); return out.length ? out : [h[name] || []]; }
+    var T = pick('temperature_2m'), cur = j.current || {};
+    var Ps = each('precipitation'), PPs = each('precipitation_probability'), WCs = each('weather_code');
+    var P = [], PX = [], PP = [], WC = [], RAINY = [];
+    for (var i = 0; i < n; i++) {
+      var sum = 0, cnt = 0, mx = 0, pp = 0, wc = 0, rainy = false;
+      Ps.forEach(function (x) { if (x[i] != null) { sum += x[i]; cnt++; mx = Math.max(mx, x[i]); } });
+      PPs.forEach(function (x) { if (x[i] != null) pp = Math.max(pp, x[i]); });
+      WCs.forEach(function (x) { var c = x[i]; if (c != null) { if (c > wc) wc = c; if ((c >= 51 && c <= 67) || (c >= 71 && c <= 86) || c >= 95) rainy = true; } });
+      P.push(cnt ? sum / cnt : 0); PX.push(mx); PP.push(pp); WC.push(wc); RAINY.push(rainy);
+    }
     var nowIdx = 0;
-    if (cur.time) { var key = cur.time.slice(0, 13); for (var i = 0; i < n; i++) { if (h.time[i].slice(0, 13) === key) { nowIdx = i; break; } } }
+    if (cur.time) { var key = cur.time.slice(0, 13); for (i = 0; i < n; i++) { if (h.time[i].slice(0, 13) === key) { nowIdx = i; break; } } }
+    var A = pick('apparent_temperature', T);
     return build({
-      time: h.time, T: T, A: arr(h.apparent_temperature, T), P: arr(h.precipitation), PP: arr(h.precipitation_probability),
-      C: arr(h.cloud_cover), W: arr(h.wind_speed_10m), G: arr(h.wind_gusts_10m, h.wind_speed_10m), DIR: arr(h.wind_direction_10m),
-      S: arr(h.soil_temperature_0cm, T), D: arr(h.is_day), WC: arr(h.weather_code), nowIdx: nowIdx,
-      curT: cur.temperature_2m != null ? cur.temperature_2m : T[nowIdx], curA: cur.apparent_temperature != null ? cur.apparent_temperature : h.apparent_temperature[nowIdx],
+      time: h.time, T: T, A: A, P: P, PX: PX, PP: PP, WC: WC, RAINY: RAINY,
+      C: pick('cloud_cover'), W: pick('wind_speed_10m'), G: pick('wind_gusts_10m', pick('wind_speed_10m')), DIR: pick('wind_direction_10m'),
+      S: pick('soil_temperature_0cm', T), D: pick('is_day'), nowIdx: nowIdx,
+      curT: cur.temperature_2m != null ? cur.temperature_2m : T[nowIdx], curA: cur.apparent_temperature != null ? cur.apparent_temperature : A[nowIdx],
       stamp: cur.time ? cur.time.slice(11, 16) : ''
     });
   }
+  /* an hour counts as wet if either model puts at least 0.1 mm there, or calls it rain/drizzle/snow itself */
+  function wet(i) { return M.PX[i] >= 0.1 || M.RAINY[i]; }
+  function drizzle(i) { return M.PX[i] < 0.3; }
   function demo() {
     var now = new Date(), time = [], T = [], A = [], P = [], PP = [], C = [], W = [], G = [], DIR = [], S = [], D = [];
     var mean = [5, 3.8, 7, 8.5, 6, 4.5, 7], amp = [5.5, 5, 3.5, 4.5, 6, 5.5, 4], cl = [0.2, 0.1, 0.95, 0.5, 0.55, 0.2, 0.6];
@@ -294,7 +316,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
       S.push(t + (day ? 1.5 : (c < 0.35 ? -1.4 : -0.2))); A.push(t - 0.4 * w);
     }
     var nowIdx = now.getHours();
-    return build({ time: time, T: T, A: A, P: P, PP: PP, C: C, W: W, G: G, DIR: DIR, S: S, D: D, WC: T.map(function () { return 0; }), nowIdx: nowIdx,
+    return build({ time: time, T: T, A: A, P: P, PP: PP, C: C, W: W, G: G, DIR: DIR, S: S, D: D, WC: T.map(function () { return 0; }), PX: P, RAINY: P.map(function (p) { return p >= 0.1; }), nowIdx: nowIdx,
       curT: T[nowIdx], curA: A[nowIdx], stamp: pad(now.getHours()) + ':' + pad(now.getMinutes()), demo: true });
   }
 
@@ -319,12 +341,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     }
     r.level = r.tmin <= 0 ? 'air' : (r.smin <= 0 || r.ground) ? 'ground' : 'none';
     var s = -1, e = -1;
-    for (i = a; i < b; i++) { if (M.P[i] >= 0.1) { if (s < 0) s = i; e = i; } else if (s >= 0) break; }
+    for (i = a; i < b; i++) { if (wet(i)) { if (s < 0) s = i; e = i; } else if (s >= 0) break; }
     if (s >= 0) {
-      var mm = 0; for (i = s; i <= e; i++) mm += M.P[i];
-      r.seg = { s: s, e: e, mm: mm, ph: phase(M.T[Math.floor((s + e) / 2)]) };
+      var mm = 0, dz = true; for (i = s; i <= e; i++) { mm += M.P[i]; if (!drizzle(i)) dz = false; }
+      r.seg = { s: s, e: e, mm: mm, dz: dz, ph: phase(M.T[Math.floor((s + e) / 2)]) };
     }
-    for (i = b; i < M.n; i++) { if (M.P[i] >= 0.2) { r.next = i; break; } }
+    for (i = b; i < M.n; i++) { if (wet(i) && M.PX[i] >= 0.2) { r.next = i; break; } }
     for (i = b; i < M.n; i++) {
       if (M.T[i] <= 0) { r.nextFrost = { i: i, kind: 'мороз' }; break; }
       if (M.S[i] <= 0 && !r.nextFrost) r.nextFrost = { i: i, kind: 'приморозок' };
@@ -334,7 +356,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   function mmText(x) { return x < 0.5 ? 'менше міліметра' : 'близько ' + num(x, x < 10 ? 1 : 0) + ' мм'; }
   function condText() {
     var a = M.nowIdx;
-    if (M.P[a] >= 0.15) return phase(M.T[a]);
+    if (wet(a)) return M.T[a] > 1.5 && drizzle(a) ? 'Мряка' : phase(M.T[a]);
     var c = M.C[a];
     return c > 80 ? 'Хмарно' : c > 50 ? 'Мінлива хмарність' : c > 25 ? 'Невелика хмарність' : 'Ясно';
   }
@@ -351,23 +373,28 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   function amount(mm) { return mm < 1.5 ? 'слабкий' : mm < 6 ? 'помірний' : 'сильний'; }
   function copy() {
     var an = analyse(), a = M.nowIdx, b = Math.min(M.n, a + 24), i, lines = [];
-    var tmax = -99, wet12 = false;
-    for (i = a; i < b; i++) { if (M.T[i] > tmax) tmax = M.T[i]; if (i < a + 12 && M.P[i] >= 0.15) wet12 = true; }
+    var tmax = -99;
+    for (i = a; i < b; i++) if (M.T[i] > tmax) tmax = M.T[i];
     function feel(t) { return t >= 28 ? 'спекотно' : t >= 20 ? 'тепло' : t >= 12 ? 'прохолодно' : t >= -0.5 ? 'холодно' : 'морозно'; }
-    /* one main sentence */
+    /* the whole of today counts, morning included, not only what is ahead */
+    var d0 = M.days[M.dayOf[a]], wetToday = 0, dzToday = true, ppToday = 0, endToday = Math.min(d0.end, a + 12);
+    for (i = d0.start; i <= Math.max(endToday, a); i++) { if (wet(i)) { wetToday++; if (!drizzle(i)) dzToday = false; } if (i >= a) ppToday = Math.max(ppToday, M.PP[i]); }
+    var skyPart = wetToday ? ', часом ' + (dzToday ? 'мряка' : 'дощ') : ppToday >= 30 ? ', можливий дощ' : ppToday < 15 ? ' й сухо' : '';
     var verdict;
-    if (M.P[a] >= 0.15) verdict = 'Зараз ' + phase(M.T[a]).toLowerCase() + ', ' + deg(M.curT) + '.';
-    else if (M.D[a]) verdict = 'Сьогодні ' + feel(tmax) + (wet12 ? '' : ' й сухо') + ', до ' + deg(tmax) + '.';
-    else verdict = 'Зараз ' + feel(M.curT) + (wet12 ? '' : ' й сухо') + ', ' + deg(M.curT) + '.';
+    if (wet(a)) verdict = 'Зараз ' + (M.T[a] > 1.5 && drizzle(a) ? 'мряка' : phase(M.T[a]).toLowerCase()) + ', ' + deg(M.curT) + '.';
+    else if (M.D[a]) verdict = 'Сьогодні ' + feel(tmax) + skyPart + ', до ' + deg(tmax) + '.';
+    else verdict = 'Зараз ' + feel(M.curT) + skyPart + ', ' + deg(M.curT) + '.';
     if (!an.seg) {
       if (an.next >= 0) verdict += ' Наступний ' + phase(M.T[an.next]).toLowerCase() + ' ' + whenPart(an.next) + '.';
       else verdict += ' Опадів цього тижня не буде.';
     }
     /* rain, only when it is coming within a day */
     if (an.seg) {
-      var sg = an.seg, ph = sg.ph.toLowerCase(), am = amount(sg.mm);
-      if (sg.s === a) lines.push('Зараз ' + am + ' ' + ph + ', закінчиться ' + whenPart(Math.min(M.n - 1, sg.e + 1)) + '.');
-      else lines.push(cap(whenPart(sg.s)) + ' ' + am + ' ' + ph + '.');
+      var sg = an.seg, ph = sg.ph.toLowerCase(), what = sg.dz && ph === 'дощ' ? 'мряка' : amount(sg.mm) + ' ' + ph;
+      var pr = Math.round(Math.max.apply(null, M.PP.slice(sg.s, sg.e + 1)) / 10) * 10;
+      var odds = pr && pr < 50 ? ', ймовірність ' + pr + '%' : '';
+      if (sg.s === a) lines.push('Зараз ' + what + ', закінчиться ' + whenPart(Math.min(M.n - 1, sg.e + 1)) + '.');
+      else lines.push(cap(whenPart(sg.s)) + ' ' + what + odds + '.');
     }
     /* cold, only when it matters */
     var tip = ' Накрийте, що не любить холоду.';
@@ -416,7 +443,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   function sky(i) {
     var wc = M.WC[i] || 0, p = M.P[i], c = M.C[i], night = !M.D[i], t = M.T[i];
     if (wc >= 95) return { k: 'storm', w: 'Гроза' };
-    if (p >= 0.15) return t <= 0 ? { k: 'snow', w: 'Сніг' } : t <= 1.5 ? { k: 'snow', w: 'Мокрий сніг' } : { k: 'rain', w: 'Дощ' };
+    if (wet(i)) return t <= 0 ? { k: 'snow', w: 'Сніг' } : t <= 1.5 ? { k: 'snow', w: 'Мокрий сніг' } : { k: 'rain', w: drizzle(i) ? 'Мряка' : 'Дощ' };
     if (c > 75) return { k: 'cloud', w: 'Хмарно' };
     if (c > 40) return { k: night ? 'partlyN' : 'partly', w: 'Мінлива хмарність' };
     if (c > 20 && !night) return { k: 'partly', w: 'Невелика хмарність' };
@@ -432,30 +459,34 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
         '<span class="tm">' + (i === a ? 'Зараз' : pad(M.hour[i]) + ':00') + '</span>' +
         '<span class="ic" title="' + sk.w + '">' + ico(sk.k) + '</span>' +
         '<span class="tt' + (M.T[i] <= 0 ? ' fr' : '') + '">' + deg(M.T[i]) + '</span>' +
-        '<span class="mm">' + (M.PP[i] >= 20 && M.P[i] >= 0.1 ? Math.round(M.PP[i] / 10) * 10 + '%' : '') + '</span></div>';
+        '<span class="mm">' + (M.PP[i] >= 20 && (wet(i) || M.PP[i] >= 40) ? Math.round(M.PP[i] / 10) * 10 + '%' : '') + '</span></div>';
     }
     $('hours').innerHTML = s;
   }
 
   /* ---------- days: a picture, a few words, two numbers ---------- */
   function dayInfo(d) {
-    var mn = 99, mxv = -99, mm = 0, wet = 0, tw = 0, cs = 0, cn = 0, ground = false, storm = false, pp = 0, i;
+    var mn = 99, mxv = -99, mm = 0, wetN = 0, tw = 0, cs = 0, cn = 0, ground = false, storm = false, pp = 0, dzd = true, i;
     for (i = d.start; i <= d.end; i++) {
-      mn = Math.min(mn, M.T[i]); mxv = Math.max(mxv, M.T[i]); mm += M.P[i]; if (M.P[i] >= 0.1) pp = Math.max(pp, M.PP[i]);
-      if (M.P[i] >= 0.15) { wet++; tw += M.T[i]; }
+      mn = Math.min(mn, M.T[i]); mxv = Math.max(mxv, M.T[i]); mm += M.P[i]; pp = Math.max(pp, M.PP[i]);
+      if (wet(i)) { wetN++; tw += M.T[i]; if (!drizzle(i)) dzd = false; }
       if (M.D[i]) { cs += M.C[i]; cn++; }
       if (M.WC[i] >= 95) storm = true;
       if (M.S[i] <= 0 || (!M.D[i] && M.T[i] <= 2.5 && M.C[i] < 35 && M.W[i] < 3)) ground = true;
     }
     var avgC = cn ? cs / cn : 50, k, w;
     if (storm) { k = 'storm'; w = 'Гроза'; }
-    else if (mm >= 0.5 && wet >= 1) {
-      var tm = tw / wet, snow = tm <= 0, mixed = tm > 0 && tm <= 1.5;
+    else if (mm >= 0.5 && wetN >= 1) {
+      var tm = tw / wetN, snow = tm <= 0, mixed = tm > 0 && tm <= 1.5;
       k = snow || mixed ? 'snow' : 'rain';
       w = (snow ? (mm >= 6 ? 'Сильний сніг' : mm < 1.5 ? 'Невеликий сніг' : 'Сніг') : mixed ? 'Мокрий сніг' : (mm >= 10 ? 'Сильний дощ' : mm < 2 ? 'Невеликий дощ' : 'Дощ')) + ', ' + num(mm, mm < 10 ? 1 : 0) + ' мм';
-    } else if (avgC > 75) { k = 'cloud'; w = 'Хмарно, без опадів'; }
-    else if (avgC > 40) { k = 'partly'; w = 'Мінлива хмарність, сухо'; }
-    else { k = 'sun'; w = 'Переважно сонячно, сухо'; }
+    } else if (wetN >= 1) { k = (tw / wetN) <= 1.5 ? 'snow' : 'rain'; w = (tw / wetN) <= 1.5 ? 'Часом слабкий сніг' : 'Часом мряка'; }
+    else {
+      var dry = pp < 15 ? ', сухо' : pp >= 30 ? ', можливий дощ' : '';
+      if (avgC > 75) { k = 'cloud'; w = 'Хмарно' + (dry === ', сухо' ? ', без опадів' : dry); }
+      else if (avgC > 40) { k = 'partly'; w = 'Мінлива хмарність' + dry; }
+      else { k = 'sun'; w = 'Переважно сонячно' + dry; }
+    }
     return { k: k, w: w, pp: (k === 'rain' || k === 'snow' || k === 'storm') && pp >= 20 ? Math.round(pp / 10) * 10 : 0, mn: mn, mx: mxv, note: mn <= -0.5 ? 'Вночі мороз' : (mn <= 1 || ground) ? 'Вночі можливий приморозок' : '' };
   }
   function renderDays() {
@@ -562,7 +593,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
     var rules = ' Небезпечні явища позначаємо за власними порогами (пориви від 15 м/с, злива від 5 мм за годину, сильні опади від 20 мм за добу, мороз від −15°, спека від 30°). Це не офіційне попередження: його дають ДСНС та Укргідрометцентр.';
     $('src').textContent = (M.demo
       ? 'Це макет на демо-даних: у цьому перегляді немає доступу до мережі. У встановленій апці прогноз бере Open-Meteo.com (CC BY 4.0).'
-      : 'Дані: Open-Meteo.com (CC BY 4.0).') + ' Оцінка приморозку: ясне небо, слабкий вітер і температура ґрунту, це не гарантія.' + rules;
+      : 'Дані: Open-Meteo.com (CC BY 4.0), моделі ICON (DWD) і ECMWF. Якщо хоч одна бачить дощ, апка не скаже «сухо».') + ' Оцінка приморозку: ясне небо, слабкий вітер і температура ґрунту, це не гарантія.' + rules;
     document.title = 'Подих';
   }
 
@@ -574,7 +605,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outli
   function load() {
     var key = 'podykh-cache-' + place.lat.toFixed(2) + ',' + place.lon.toFixed(2);
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + place.lat + '&longitude=' + place.lon +
-      '&hourly=' + HOURLY + '&current=temperature_2m,apparent_temperature&timezone=auto&forecast_days=7&wind_speed_unit=ms';
+      '&hourly=' + HOURLY + '&current=temperature_2m,apparent_temperature&timezone=auto&forecast_days=7&wind_speed_unit=ms&models=' + MODELS.join(',');
     $('status').textContent = 'Оновлюю';
     return fetchJson(url, 8000).then(function (j) {
       M = fromApi(j); lsSet(key, j); render('live');
